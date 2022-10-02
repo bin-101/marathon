@@ -192,7 +192,7 @@ struct TestTimer{
     unordered_map<string,chrono::high_resolution_clock::time_point> start_time;
 
     TestTimer(){}
-    void start(string s){
+    void start(const string &s){
 #ifndef ONLINE_JUDGE
         start_time[s]=chrono::high_resolution_clock::now();
 #endif
