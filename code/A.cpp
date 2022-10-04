@@ -151,11 +151,15 @@ struct Xor32{
     inline u32 operator()(){
         return rnd_make();
     }
-    //[a,b]
+    //[a,b)
     inline int operator()(int a,int b){
-        int dis=b-a+1;
+        int dis=b-a;
         int add=rnd_make()%dis;
         return a+add;
+    }
+    //[0,b)
+    inline int operator()(int b){
+        return rnd_make()%b;
     }
 };
 
@@ -178,12 +182,9 @@ struct Timer{
     void start(){
         st=chrono::high_resolution_clock::now();
     }
-    int span(){
+    int span()const{
         auto now=chrono::high_resolution_clock::now();
         return chrono::duration_cast<chrono::milliseconds>(now-st).count();
-    }
-    void stop(){
-
     }
 };
 struct TestTimer{
@@ -203,7 +204,7 @@ struct TestTimer{
         sum_time[s]+=chrono::duration_cast<chrono::nanoseconds>(now-start_time[s]).count();
 #endif
     }
-    void output(){
+    void output()const{
 #ifndef ONLINE_JUDGE
         for(auto m:sum_time){
             cerr<<m.first<<": "<<m.second/1e6<<"ms"<<endl;
@@ -221,7 +222,7 @@ struct TestCounter{
         cnt[s]++;
 #endif
     }
-    void output(){
+    void output()const{
 #ifndef ONLINE_JUDGE
         for(auto m:cnt){
             cerr<<m.first<<": "<<m.second<<endl;
@@ -229,6 +230,11 @@ struct TestCounter{
 #endif
     }    
 };
+Timer TIME;
+Xor32 Rand32;
+Xor64 Rand64;
+TestTimer testTimer;
+TestCounter testCounter;
 
 //https://atcoder.jp/contests/asprocon9/submissions/34659956
 template<class T,int CAPACITY>
@@ -283,13 +289,66 @@ public:
     void clear(){
         size_=0;
     }
+    //O(1)
+    //末尾と入れ替える。順序が保持されないが高速
+    void swap_remove(int idx){
+        array_[idx]=array_[size_-1];
+        size_--;
+    }
+    //O(size)
+    //順序を気にしない場合、swap_removeの方がいい
+    void remove(int idx){
+        for(int i=idx;i<size_-1;i++){
+            array_[i]=array_[i+1];
+        }
+        size_--;
+    }
 };
 
-Timer TIME;
-Xor32 Rand32;
-Xor64 Rand64;
-TestTimer testTimer;
-TestCounter testCounter;
+//[0,n)の集合を管理
+//値の追加・削除・存在確認: O(1)
+//空間計算量: O(n)
+//重複は許さない
+//https://topcoder-tomerun.hatenablog.jp/entry/2021/06/12/134643
+template<int CAPACITY>
+struct IntSet{
+    DynamicArray<int,CAPACITY> set_;
+    array<int,CAPACITY> pos_;
+
+    IntSet(){
+        fill(set_,-1);
+    }
+    void insert(int v){
+        if(pos_[v]!=-1) return;
+        pos_[v]=set_.size();
+        set_.push_back(v);
+    }
+
+    void remove(int v){
+        assert(pos_[v]!=-1);
+        set_[pos_[v]]=set_.back();
+        set_.pop_back();
+        pos_[v]=-1;
+    }
+
+    bool contains(int v)const{
+        return pos_[v]!=-1;
+    }
+
+    int size()const{
+        return set_.size();
+    }
+
+    int random()const{
+        return set_[Rand32(set_.size())];
+    }
+
+    int random_extract(){
+        int v=set_[Rand32(set_.size())];
+        remove(v);
+        return v;
+    }
+};
 
 //https://atcoder.jp/contests/asprocon9/submissions/34659956
 #ifndef OPTUNA 
