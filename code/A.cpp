@@ -3,9 +3,9 @@
 todo:
 
 */
-//#define NDEBUG
+#define NDEBUG
 
-//#define ONLINE_JUDGE
+#define ONLINE_JUDGE
 #ifndef ONLINE_JUDGE
 //#define OPTUNA
 #endif
@@ -245,6 +245,10 @@ public:
 
     DynamicArray(){}
 
+    DynamicArray(int n){
+        resize(n);
+    }
+
     void push_back(const T &e){
         array_[size_++]=e;
     }
@@ -302,6 +306,11 @@ public:
             array_[i]=array_[i+1];
         }
         size_--;
+    }
+    void fill(T x){
+        for(int i=0;i<size_;i++){
+            array_[i]=x;
+        }
     }
 };
 
@@ -412,8 +421,345 @@ T linear_function(U x,U start_x,U end_x,T start_value,T end_value){
     return start_value+(end_value-start_value)*(x-start_x)/(end_x-start_x);
 }
 
-void solve(){
+//https://atcoder.jp/contests/ahc005/submissions/24829813
+//https://future-architect.github.io/articles/20211201a/
+//improvedを使う必要があるのか？
+//inf_で足し算をしてしまうとまずい
+//inf_で初期化をする
+template<class T,int SIZE>
+class TSP{
+public:
+    DynamicArray<DynamicArray<T,SIZE>,SIZE> distance_;
+    DynamicArray<int,SIZE> ans_;
+    int n_;
+    DynamicArray<int,SIZE> reuse_;//使いまわす
+    DynamicArray<int,SIZE> perm_;//使いまわす　常に[0,n_-1]の順列
+    DynamicArray<DynamicArray<int,SIZE>,SIZE> order_; //[i][j]: 頂点iからj番目に近い頂点
+    DynamicArray<int,SIZE> place_; //ans_[place_[i]]=i
+    T inf_;
 
+    TSP():inf_(numeric_limits<T>::max()){
+
+    }
+
+    TSP(int n):n_(n),inf_(numeric_limits<T>::max()){
+        distance_.resize(n_);
+        for(int i=0;i<n_;i++){
+            distance_[i].resize(n_);
+        }
+        ans_.resize(n_);
+        reuse_.resize(n_);
+        perm_.resize(n_);
+        iota(perm_.begin(), perm_.end(),0);
+        
+        order_.resize(n_);
+        place_.resize(n_);
+        for(int i=0;i<n_;i++){
+            order_[i].resize(n_);
+            iota(order_[i].begin(),order_[i].end(),0);
+            order_[i].swap_remove(i);
+        }
+    }
+    void init(int n){
+        n_=n;
+        assert(n_);
+        distance_.resize(n_);
+        for(int i=0;i<n_;i++){
+            distance_[i].resize(n_);
+        }
+        ans_.resize(n_);
+        reuse_.resize(n_);
+        perm_.resize(n_);
+        iota(perm_.begin(), perm_.end(),0);
+        
+        order_.resize(n_);
+        place_.resize(n_);
+        for(int i=0;i<n_;i++){
+            order_[i].resize(n_);
+            iota(order_[i].begin(),order_[i].end(),0);
+            order_[i].swap_remove(i);
+        }
+        assert(n_);
+    }
+
+    void set(int from,int to,T dist){
+        distance_[from][to]=dist;
+    }
+    //O(N^2logN)
+    //order_を構築
+    void build_order(){
+        for(int i=0;i<n_;i++){
+            sort(order_[i].begin(),order_[i].end(),
+                [&](int j,int k){
+                    return dist(i,j)<dist(i,k);
+                });
+        }
+    }
+    //[from,to)
+    void build_place(int from,int to){
+        for(int i=from;i<to;i++){
+            place_[ans_[i]]=i;
+        }
+    }
+    //局所最適まで探索
+    //変化量を返す
+    T local_search(T now_dist){
+        T diff=0;
+        int stage=Rand32(2);
+        bool pre_fault=0;
+        while(true){
+            bool updated=false;
+            for(int a1=0;a1<n_;a1++){
+                int a2=next(a1);
+                T d12=dist(ans_[a1],ans_[a2]);
+                int v1=ans_[a1];
+                int v2=ans_[a2];
+                //ans_[a1]から近い順にイテレート
+                if(stage==0){
+                    for(int o1=0;o1<n_;o1++){
+                        int v3=order_[v1][o1];
+                        if(d12<=dist(v1,v3)) break;
+                        //cerr<<a1<<" "<<place_[v3]<<endl;
+                        T change_dist=calc_two_opt_score(a1,place_[v3]);
+                        if(change_dist<0){
+                            diff+=change_dist;
+                            //cerr<<change_dist<<endl;
+                            swap_two_opt(a1,place_[v3]);
+                            updated=true;
+                            assert(is_perm(ans_));
+
+                            assert(calc_sum_dist(ans_)==now_dist+diff);
+
+                        }
+                    }
+                }
+                //ans_[a2]から近い順にイテレート
+                if(stage==1){
+                    for(int o2=0;o2<n_;o2++){
+                        int v4=order_[v2][o2];
+                        if(d12<=dist(v2,v4)) break;
+                        T change_dist=calc_two_opt_score(a1,prev(place_[v4]));
+                        //cerr<<change_dist<<" "<<a1<<" "<<prev(place_[v4])<<endl;
+                        if(change_dist<0){
+                            diff+=change_dist;
+                            swap_two_opt(a1,prev(place_[v4]));
+                            updated=true;
+                            assert(is_perm(ans_));
+                            assert(calc_sum_dist(ans_)==now_dist+diff);
+                        }
+                    }
+                }
+            }
+            stage^=1;
+            if(not updated){
+                if(pre_fault) return diff;
+                pre_fault=true;
+            }else{
+                pre_fault=false;
+            }
+
+        }
+    }
+    void solve(int time_limit){
+        if(n_<10){
+            solve_perm(time_limit);
+            return;
+        }
+        assert(n_);
+        DynamicArray<int,SIZE> best_perm;
+        T now_dist=greedy();
+        assert(is_perm(ans_));
+        assert(calc_sum_dist(ans_)==now_dist);
+        best_perm=ans_;
+        T best_dist=now_dist;
+        //cerr<<best_dist<<endl;
+
+        while(TIME.span()<time_limit){
+            now_dist+=local_search(now_dist);
+            assert(is_perm(ans_));
+            //cerr<<now_dist<<endl;
+            assert(calc_sum_dist(ans_)==now_dist);
+            //cerr<<best_dist<<endl;
+            if(now_dist<best_dist){
+                best_perm=ans_;
+                best_dist=now_dist;
+                testCounter.count("tsp_update");
+            }
+            now_dist+=double_bridge();
+            assert(is_perm(ans_));
+            //cerr<<now_dist<<endl;
+            //cerr<<calc_sum_dist(ans_)<<endl;
+            assert(calc_sum_dist(ans_)==now_dist);
+            testCounter.count("tsp_try");
+            assert(true_place());
+        }
+
+        ans_=best_perm;
+    }
+    bool true_place(){
+        for(int i=0;i<n_;i++){
+            if(ans_[place_[i]]!=i) return false;
+        }
+        return true;
+    }
+
+    //O(n!)
+    void solve_perm(int time_limit){
+        T best_score=numeric_limits<T>::max();
+
+        iota(reuse_.begin(),reuse_.end(),0);
+
+        do{
+            T sum_dist=calc_sum_dist(reuse_);
+            if(sum_dist<best_score){
+                best_score=sum_dist;
+                ans_=reuse_;
+            }
+        }while(next_permutation(reuse_.begin(),reuse_.end()) and TIME.span()<time_limit);
+    }
+
+    T greedy(){
+        assert(n_);
+        reuse_.fill(0);
+        ans_[0]=0;
+        reuse_[0]=1;
+        int now=0;
+        T sum_dist=0;
+        for(int i=1;i<n_;i++){
+            int to=-1;
+            for(int o1=0;o1<n_;o1++){
+                int v2=order_[now][o1];
+                if(not reuse_[v2]){
+                    to=v2;
+                    break;
+                }
+            }
+            assert(to!=-1);
+            sum_dist+=dist(now,to);
+            reuse_[to]=1;
+            ans_[i]=to;
+            now=to;
+        }
+        build_place(0,n_);
+        return sum_dist+dist_ans(n_-1,0);
+    }
+    T double_bridge(){
+        //cerr<<n_<<endl;
+        random_choose(4);
+        //cerr<<n_<<endl;
+
+        T change_dist=0;
+
+        for(int i=0;i<4;i++){
+            change_dist-=dist(ans_[reuse_[i]],ans_[next(reuse_[i])]);
+            change_dist+=dist(ans_[reuse_[i]],ans_[next(reuse_[(i+2)%4])]);
+        }
+        //assert(is_perm(ans_));
+
+        copy(ans_.begin(),ans_.begin()+reuse_[0]+1,perm_.begin());
+        copy(ans_.begin()+reuse_[2]+1,ans_.begin()+reuse_[3]+1,perm_.begin()+reuse_[0]+1);
+        copy(ans_.begin()+reuse_[1]+1,ans_.begin()+reuse_[2]+1,perm_.begin()+reuse_[0]+reuse_[3]-reuse_[2]+1);
+        copy(ans_.begin()+reuse_[0]+1,ans_.begin()+reuse_[1]+1,perm_.begin()+reuse_[0]+reuse_[3]-reuse_[1]+1);
+        copy(ans_.begin()+reuse_[3]+1,ans_.end(),perm_.begin()+reuse_[3]+1);
+
+        ans_=perm_;
+        assert(is_perm(ans_));
+        build_place(0,n_);
+
+        return change_dist;
+    }
+
+    inline T dist(int i,int j){
+        return distance_[i][j];
+    }
+    inline T dist(int i){
+        return distance_[ans_[i]][ans_[next(i)]];
+    }
+    inline T dist_ans(int a1,int a2){
+        return dist(ans_[a1],ans_[a2]);
+    }
+
+    T dist(int i,int j,const DynamicArray<int,SIZE> &perm){
+        return distance_[perm[i]][perm[j]];
+    }
+
+    T calc_sum_dist(const DynamicArray<int,SIZE> &perm){
+        T sum_dist=dist(perm[n_-1],perm[0]);
+        for(int i=1;i<n_;i++){
+            sum_dist+=dist(perm[i-1],perm[i]);
+        }
+        return sum_dist;
+    }
+    //reuse_[0:k-1]に相異なるn_未満の自然数を昇順に代入
+    void random_choose(int k){
+        assert(k<=n_);
+        for(int i=0;i<k;i++){
+            int idx=i+Rand32(n_-i);
+            reuse_[i]=perm_[idx];
+            swap(perm_[i],perm_[idx]);
+        }
+        sort(reuse_.begin(),reuse_.begin()+k);
+    }
+    //debug用 O(n_)
+    bool is_perm(const DynamicArray<int,SIZE> &v){
+        reuse_.fill(0);
+        for(int i=0;i<n_;i++){
+            if(reuse_[v[i]]) return false;
+            reuse_[v[i]]=true;
+        }
+        return true;
+    }
+    int next(int a){
+        return a==n_-1?0:a+1;
+    }
+    int prev(int a){
+        return a==0?n_-1:a-1;
+    }
+    //ans_[a1]-ans_[a1+1] ans[a2]_-ans_[a2+1]
+    T calc_two_opt_score(int a1,int a2){
+        if(a1==a2) return 0;
+        T res=-dist(a1)-dist(a2);
+        res+=dist_ans(a1,a2)+dist_ans(next(a1),next(a2));
+        return res;
+    }
+    void swap_two_opt(int a1,int a2){
+        assert(a1!=a2);
+        if(a1>a2){
+            swap(a1,a2);
+        }
+        reverse(ans_.begin()+a1+1,ans_.begin()+a2+1);
+        build_place(a1+1,a2+1);
+        //cerr<<-1<<endl;
+    }
+};
+
+constexpr int MAX_SIZE=2500+1;
+TSP<ll,2500> tsp;
+void solve(){
+    int n=0;
+    vector<int> id(MAX_SIZE);
+    vector<double> x(MAX_SIZE),y(MAX_SIZE);
+    while(cin>>id[n]){
+        cin>>x[n]>>y[n];
+        n++;
+    }
+    tsp.init(n);
+    assert(tsp.n_);
+    for(int i=0;i<n;i++){
+        for(int j=0;j<n;j++){
+            tsp.set(i,j,sqrt((x[i]-x[j])*(x[i]-x[j])+(y[i]-y[j])*(y[i]-y[j]))*100);
+        }
+    }
+    assert(tsp.n_);
+    tsp.build_order();
+    assert(tsp.n_);
+    tsp.solve(60*1000);
+
+    for(int i=0;i<n;i++){
+        cout<<id[tsp.ans_[i]]<<endl;
+    }
+    cerr<<tsp.calc_sum_dist(tsp.ans_)<<endl;
+    testCounter.output();
 }
  
  
