@@ -101,7 +101,13 @@ struct Xor64{
 
 struct Timer{
     chrono::high_resolution_clock::time_point st;
-    Timer(){start();}
+    float local;
+    Timer(){
+#ifndef ONLINE_JUDGE
+        local=1.0;
+#endif
+        start();
+    }
     void start(){
         st=chrono::high_resolution_clock::now();
     }
@@ -392,8 +398,10 @@ struct SimulatedAnnealing{
         float temp=calc_temp();
         return exp(diff/temp);
     }
-    float calc_plus(float prob){
-        return log(prob)*calc_temp();
+    float calc_diff(float prob){
+        float diff=log(prob)*calc_temp();
+        if(minimum) diff*=-1;
+        return diff;
     }
     inline bool operator()(float diff){
         if(minimum) diff*=-1;
