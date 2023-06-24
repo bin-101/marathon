@@ -416,7 +416,7 @@ struct SimulatedAnnealing{
     float endTime;
     bool yama;
     bool minimum;
-    SimulatedAnnealing(){}
+    //SimulatedAnnealing(){}
     SimulatedAnnealing(float startTemp,float endTemp,float startTime,float endTime,bool yama,bool minimum):
         startTemp(startTemp),endTemp(endTemp),startTime(startTime),endTime(endTime),yama(yama),minimum(minimum){
     }
@@ -448,7 +448,6 @@ struct SimulatedAnnealing{
         else return false;
     }
 };
-SimulatedAnnealing SA;
 
 ///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
