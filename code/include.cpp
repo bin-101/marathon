@@ -92,6 +92,15 @@ struct Xor32{
     inline int operator()(int b){
         return rnd_make()%b;
     }
+    //http://web.archive.org/web/20200105011004/https://topcoder.g.hatena.ne.jp/tomerun/20171216/
+    //[0,b)の中から異なる2つを選ぶ first<second
+    inline pair<int,int> two(int b){
+        assert(b>=2);
+        int v1=rnd_make()%b;
+        int v2=rnd_make()%(b-1);
+        if (v2>=v1) return {v1,v2+1};
+        else return {v2,v1};
+    }
 };
 
 struct Xor64{
