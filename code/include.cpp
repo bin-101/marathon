@@ -5,6 +5,7 @@ TODO:
 //#define NDEBUG
 
 //#define ONLINE_JUDGE
+
 #ifndef ONLINE_JUDGE
 //#define OPTUNA
 #endif
@@ -382,7 +383,7 @@ struct IntSet{
     }
     void clear(){
         while(size()){
-            random_extract();
+            remove(set_.back());
         }
     }
 };
@@ -451,17 +452,10 @@ SimulatedAnnealing SA;
 #endif
 
 namespace OP{
-    REGIST_PARAM(endTemp,float,0);
-    REGIST_PARAM(swap_prob,int,-1);
-    REGIST_PARAM ( num_mark , int , 14 );
-    REGIST_PARAM ( radius , int , 476 );
-    REGIST_PARAM ( first_stage , double , 0.432904880557773 );
-    REGIST_PARAM ( secondTemp , double , 75190.50602424436 );
-
     REGIST_PARAM(yama,bool,false);
-    REGIST_PARAM ( startTemp , double , 500000);
+    REGIST_PARAM(startTemp,double,500000);
+    REGIST_PARAM(endTemp,float,0);
     REGIST_PARAM(TIME_END,int,1900);
-    REGIST_PARAM(greedy_candidate,int,20);
 };
 
 
@@ -472,10 +466,6 @@ void solve(){
     testCounter.output();
     cerr<<TIME.span()<<"ms"<<endl;
     //cerr<<"score: "<<simulate(best_grid,true)<<endl;
-    // cerr<<"cost_tree: "<<cost_tree<<endl;
-    // cerr<<"cost_power: "<<cost_power<<endl;
-    // cerr<<"sum: "<<cost_tree+cost_power<<endl;
-    // cerr<<"score: "<<ll( round(1e6*(1+1e8/(cost_tree+cost_power+1e7)))   )<<endl;
 #endif
 }
  
@@ -485,7 +475,7 @@ int main(const int argc,const char** argv){
 
     }
 #endif
-    //FastIO();
+    FastIO();
     int T=1;
     //cin>>T;
     while(T--) solve();
