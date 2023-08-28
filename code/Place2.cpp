@@ -503,7 +503,7 @@ struct Place{
     Place(int idx):h(idx/Width),w(idx%Width){
  
     }
-    int dist(Place &np){
+    int dist(const Place &np){
         return sqrt(double(h-np.h)*(h-np.h) + double(w-np.w)*(w-np.w))+1;
     }
 
@@ -527,10 +527,10 @@ struct Place{
     bool out_grid(){
         return h>=Height or w>=Width or h<0 or w<0;
     }
-    bool operator==(Place &p){
+    bool operator==(const Place &p){
         return h==p.h and w==p.w;
     }
-    bool operator!=(Place &p){
+    bool operator!=(const Place &p){
         return h!=p.h or w!=p.w;
     }
     int idx(){
