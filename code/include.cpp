@@ -68,6 +68,21 @@ void FastIO(){
     cin.tie(0);
     cout << fixed << setprecision(20);
 }
+//0-indexed vector cin
+template<typename T>
+inline istream &operator>>(istream &is,vector<T> &v) {
+    for(size_t i=0;i<v.size();i++) is>>v[i];
+	return is;
+}
+ 
+//0-indexed vector cin
+template<typename T>
+inline istream &operator>>(istream &is,vector<vector<T>> &v) {
+    for(size_t i=0;i<v.size();i++){
+        is>>v[i];
+    }
+    return is;
+}
 
 
 struct Xor32{
@@ -269,6 +284,24 @@ template<typename T>
 inline void vsort(vector<T> &v){
     sort(v.begin(),v.end());
 }
+//逆順ソート
+template<typename T>
+inline void rvsort(vector<T> &v){
+	sort(v.rbegin(),v.rend());
+}
+//1ビットの数を返す
+inline int popcount(int x){
+	return __builtin_popcount(x);
+}
+//1ビットの数を返す
+inline int popcount(ll x){
+	return __builtin_popcountll(x);
+}
+template<typename T>
+inline void Compress(vector<T> &C){
+    sort(C.begin(),C.end());
+    C.erase(unique(C.begin(),C.end()),C.end());
+}
 //要素数n 初期値x
 template<typename T>
 inline vector<T> vmake(size_t n,T x){
@@ -330,6 +363,28 @@ inline ostream &operator<<(ostream &os,const vector<T> &v) {
         os<<v[i];
     }
     return os;
+}
+//vector<vector> cout
+template<typename T>
+inline ostream &operator<<(ostream &os,const vector<vector<T>> &v) {
+    for(size_t i=0;i<v.size();i++){
+        os<<v[i];
+        if(i+1!=v.size()) os<<"\n";
+    }
+    return os;
+}
+//pair cout
+template<typename T, typename U>
+inline ostream &operator<<(ostream &os,const pair<T,U> &p) {
+	os<<p.first<<" "<<p.second;
+	return os;
+}
+ 
+//pair cin
+template<typename T, typename U>
+inline istream &operator>>(istream &is,pair<T,U> &p) {
+	is>>p.first>>p.second;
+	return is;
 }
 template<typename T>
 void append(vector<T> &v,const vector<T> &vp){
@@ -421,10 +476,11 @@ struct SimulatedAnnealing{
         startTemp(startTemp),endTemp(endTemp),startTime(startTime),endTime(endTime),yama(yama),minimum(minimum){
     }
     float calc_temp(){
-        double t=TIME.span()/1950.0;
-        chmin(t,1);
-        return pow(0.01,1.0-t)*pow(0.001,t);
-        return linear_function(float(TIME.span()),startTime,endTime,startTemp,endTemp);
+        return linear_function(float(TIME.span()),startTime,endTime,startTemp,endTemp); //線形
+        //https://atcoder.jp/contests/ahc014/submissions/35326979
+        /*float progress=(TIME.span()-startTime)/(endTime-startTime);
+        if(progress>1.0) progress=1.0;
+        return pow(startTemp,1.0-progress)*pow(endTemp,progress);*/
     }
     float calc_prob(float diff){
         if(minimum) diff*=-1;
@@ -438,13 +494,20 @@ struct SimulatedAnnealing{
         return diff;
     }
     inline bool operator()(float diff){
+        testCounter.count("try_cnt");
         if(minimum) diff*=-1;
-        if(diff>0) return true;
+        if(diff>0){
+            testCounter.count("plus_change");
+            return true;
+        }
         if(yama) return false;
         float prob;
         if(minimum) prob=calc_prob(diff*-1);
         else prob=calc_prob(diff);
-        if(prob>float(Rand32()&mask(30))/mask(30)) return true;
+        if(prob>float(Rand32()&mask(30))/mask(30)){
+            testCounter.count("minus_change");
+            return true;
+        }
         else return false;
     }
 };
