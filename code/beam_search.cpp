@@ -1,5 +1,5 @@
 /*
-verify: https://atcoder.jp/contests/rco-contest-2018-qual/submissions/45728639
+verify:https://atcoder.jp/contests/rco-contest-2018-qual/submissions/45734999
 */
 #define NDEBUG
 
@@ -716,6 +716,13 @@ struct State{
 
 template<class Action,class Score,class Hash,uint num_branch>
 struct BeamSearch{
+    struct Candidate{
+        Action act;
+        uint parent;
+        Score score;
+        u64 hash;
+        uint priority;
+    };
     struct Node{
         Action action;
         uint parent;
@@ -723,13 +730,13 @@ struct BeamSearch{
         Score score;
         Hash hash;
         DynamicArray<pair<Action,uint>,num_branch> children;
-    };
-    struct Candidate{
-        Action act;
-        uint parent;
-        Score score;
-        u64 hash;
-        uint priority;
+        void operator=(const Candidate &candidate){
+            action=candidate.act;
+            parent=candidate.parent;
+            num_child=0;
+            score=candidate.score;
+            hash=candidate.hash;
+        }
     };
 
     struct Tree{
@@ -816,14 +823,10 @@ struct BeamSearch{
             }
         }
         void add_node(Candidate candidate){
-            node[node_size].action = candidate.act;
-            node[node_size].parent = candidate.parent;
-            node[node_size].score = candidate.score;
-            //cerr<<-3<<endl;
+            node[node_size] = candidate;
             node[candidate.parent].children.push_back({candidate.act, node_size});
-            //cerr<<-4<<endl;
-            node_size++;
             node[candidate.parent].num_child++;
+            node_size++;
         }
         //L~Rの無駄なnodeを削除
         void erase_node(uint L,uint R){
