@@ -17,6 +17,10 @@
 - 二次元グリッドの連結、近傍8か所だけをみればいい、を理解して実装
 - Rand32()
     - bool_gen(float x): x%でtrueを返す、を実装
+- 隣接頂点のリストを返す関数を作る
+    - 参考にする: https://atcoder.jp/contests/rcl-contest-2021-long/submissions/25805405
+    - https://twitter.com/bowwowforeach/status/1437396768023404548
+- testTimer: いい感じに
 ## 読む
 - 印刷したのを寝る前に読む
 - AHC023のwataさん解
