@@ -15,6 +15,7 @@
 - roulette-wheel-selection
     - insert(文字列,重み)
     - random()で文字列を返す感じかな
+        - 文字列じゃなくてtemplate<T>にすればよさそう
 - 二次元グリッドの連結、近傍8か所だけをみればいい、を理解して実装
 - Rand32()
     - bool_gen(float x): x%でtrueを返す、を実装
