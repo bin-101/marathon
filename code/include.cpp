@@ -414,6 +414,14 @@ void append(vector<T> &v,const vector<T> &vp){
         v.push_back(p);
     }
 }
+//Fisher–Yatesアルゴリズム
+template<typename T>
+void shuffle(vector<T> &v){
+    int sz=v.size();
+    for(int i=sz-1;i>0;i--){
+        swap(v[Rand32()%(i+1)],v[i]);
+    }
+}
 
 //[0,n)の集合を管理
 //値の追加・削除・存在確認: O(1)
