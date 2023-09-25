@@ -379,6 +379,28 @@ inline ostream &operator<<(ostream &os,const pair<T,U> &p) {
 	os<<p.first<<" "<<p.second;
 	return os;
 }
+//map cout
+template<typename F, typename S>
+inline ostream &operator<<(ostream &os,const map<F,S> &M) {
+	bool first=false;
+    for(auto x:M){
+        if(first) os<<endl;
+        first=true;
+        os<<x;
+    }
+	return os;
+}
+//set cout
+template<typename T>
+inline ostream &operator<<(ostream &os,const set<T> &S) {
+	bool first=false;
+    for(auto x:S){
+        if(first) os<<endl;
+        first=true;
+        os<<x;
+    }
+	return os;
+}
  
 //pair cin
 template<typename T, typename U>
@@ -531,7 +553,7 @@ namespace OP{
 
 
 void solve(){
-
+    
 #ifndef ONLINE_JUDGE
     testTimer.output();
     testCounter.output();
