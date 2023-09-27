@@ -9,14 +9,16 @@
     - 参考になりそう: https://twitter.com/terry_u16/status/1706137504867619024
 - クラスタリング
 - 焼きなまし
-    - 温度スケジュールの式を指数(psyhoさんが話していた式)変化にする
-    - toleranceを返す関数を作る
-    - よく分からなくなっているので関数を見直す
+    - 正しく動作するか確認
 - 二次元グリッドの連結、近傍8か所だけをみればいい、を理解して実装
 - 隣接頂点のリストを返す関数を作る
     - 参考にする: https://atcoder.jp/contests/rcl-contest-2021-long/submissions/25805405
     - https://twitter.com/bowwowforeach/status/1437396768023404548
-- testTimer: いい感じに
+- testTimer
+    - intervalを追加
+- TSPBB追加
+- Xor64を追加
+    - Xor32の処理を追加
 ## 読む
 - 印刷したのを寝る前に読む
 - AHC023のwataさん解
