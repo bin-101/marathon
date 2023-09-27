@@ -528,13 +528,13 @@ struct SimulatedAnnealing{
 //重複は考えない
 //浮動小数点の場合、0でも選んでしまうかも？ eraseの方がいい
 template<typename Name,typename Weight>
-struct roulette_wheel_selection{
+struct WeightedRandom{
     map<Name,int> idx_;
     vector<Name> name_;
     vector<Weight> weight_;
     vector<Weight> sum_;
 
-    roulette_wheel_selection(){
+    WeightedRandom(){
 
     }
 
@@ -593,7 +593,7 @@ inline ostream &operator<<(ostream &os,const map<F,S> &m) {
 
 int main(){
 {
-    roulette_wheel_selection<int,int> RWS;
+    WeightedRandom<int,int> RWS;
     RWS.add(0,100);
     RWS.add(1,100);
     RWS.add(2,100);
@@ -605,7 +605,7 @@ int main(){
     cerr<<cnt<<endl;
 }
 {
-    roulette_wheel_selection<int,int> RWS;
+    WeightedRandom<int,int> RWS;
     RWS.add(0,100);
     RWS.add(1,0);
     RWS.add(2,100);
@@ -617,7 +617,7 @@ int main(){
     cerr<<cnt<<endl;
 }
 {
-    roulette_wheel_selection<string,double> RWS;
+    WeightedRandom<string,double> RWS;
     RWS.add("try1",150.6);
     RWS.add("try2",100);
     RWS.add("try3",100.9);
@@ -631,7 +631,7 @@ int main(){
     cerr<<cnt<<endl;
 }
 {
-    roulette_wheel_selection<string,double> RWS;
+    WeightedRandom<string,double> RWS;
     RWS.add("try1",150.6);
     RWS.add("try2",100);
     RWS.add("try3",100.9);
