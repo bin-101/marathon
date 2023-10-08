@@ -10,15 +10,15 @@
 - クラスタリング
 - 焼きなまし
     - 正しく動作するか確認
-- 二次元グリッドの連結、近傍8か所だけをみればいい、を理解して実装
 - 隣接頂点のリストを返す関数を作る
     - 参考にする: https://atcoder.jp/contests/rcl-contest-2021-long/submissions/25805405
     - https://twitter.com/bowwowforeach/status/1437396768023404548
 - testTimer
     - intervalを追加
-- TSPBB追加
 - Xor64を追加
     - Xor32の処理を追加
+- 速いset
+    https://twitter.com/bowwowforeach/status/1395694384193048579
 ## 読む
 - 印刷したのを寝る前に読む
 - AHC023のwataさん解
