@@ -1,6 +1,7 @@
 /*
 参考: https://cyberagent.ai/blog/research/1036/
 多点スタートをいい感じに枝刈りするやつ
+まだverifyしていない
 */
 //#define NDEBUG
 
@@ -90,11 +91,13 @@ struct SuccessiveHalving{
     double time_start_;
     double time_end_;
     double time_each_stage_;
+    int interval_;
 
     int stage_now_;
+    double time_now_;
     int cnt_call_=0;
 
-    SuccessiveHalving(){
+    SuccessiveHalving(int interval=1):interval_(interval){
 
     }
 
@@ -105,6 +108,7 @@ struct SuccessiveHalving{
     void build(double time_end){
         assert(states_.size()>=1);
         time_start_=TIME.span();
+        time_now_=time_start_;
         time_end_=time_end;
 
         //ステージの数を求める
@@ -120,11 +124,13 @@ struct SuccessiveHalving{
     //次に近傍を計算する解を返す
     //すでに終了している場合、評価値-1を返す
     inline pair<S,T> &next_state(){
-        double now_time_=TIME.span();
-        if(now_time_>=time_end_){
+        if(cnt_call_%interval_==0){
+            time_now_=TIME.span();
+        }
+        if(time_now_>=time_end_){
             return {states_,-1};
         }
-        if(time_start_+time_each_stage_*(stage_now_+1)>=now_time_){
+        if(time_start_+time_each_stage_*(stage_now_+1)>=time_now_){
             //次のステージに移行
             vector<int> order;
             for(int i=0;i<states_.size();i++) order.push_back(i);
