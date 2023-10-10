@@ -93,7 +93,7 @@ struct SuccessiveHalving{
     double time_each_stage_;
     int interval_;
 
-    int stage_now_;
+    int stage_now_=0;
     double time_now_;
     int cnt_call_=0;
 
@@ -114,7 +114,7 @@ struct SuccessiveHalving{
         //ステージの数を求める
         int num_stage=1;
         int x=1;
-        while(x>=states_.size()){
+        while(x<states_.size()){
             x*=2;
             num_stage++;
         }
@@ -123,26 +123,29 @@ struct SuccessiveHalving{
     }
     //次に近傍を計算する解を返す
     //すでに終了している場合、評価値-1を返す
-    inline pair<S,T> &next_state(){
+    inline pair<S&,T&> next_state(){
         if(cnt_call_%interval_==0){
             time_now_=TIME.span();
         }
         if(time_now_>=time_end_){
-            return {states_,-1};
+            T x=-INF; //ありえない値
+            cerr<<x<<endl;
+            return {states_[0],x};
         }
-        if(time_start_+time_each_stage_*(stage_now_+1)>=time_now_){
+        if(time_now_>=time_start_+time_each_stage_*(stage_now_+1)){
             //次のステージに移行
             vector<int> order;
             for(int i=0;i<states_.size();i++) order.push_back(i);
             sort(order.begin(),order.end(),
                 [&](int i,int j){
-                    return scores_[i]>scores_[j];
+                    return scores_[i]<scores_[j]; //最小化
                 });
 
             //エラー出力
             cerr<<"stage: "<<stage_now_<<endl;
-            for(int i=0;i<order.size();i++){
-                cerr<<" "<<i<<": "<<scores_[order[i]]<<endl;
+            for(int i=0;i<1;i++){
+                cerr<<" "<<i<<": "<<states_[order[i]]<<endl;
+                cerr<<scores_[order[i]]<<endl;
             }
 
             vector<S> next_states;
@@ -161,8 +164,67 @@ struct SuccessiveHalving{
         return {states_[idx],scores_[idx]};
     }
 };
+double f(const vector<double> &v){
+    /*double sum2=0;
+    double sum_cos=0;
 
+    for(double x:v){
+        sum2+=x*x;
+        sum_cos+=cos(2*M_PI*x);
+    }
+    double n=v.size();
+
+    return 20-20*exp(-0.2*sqrt(sum2/n))+M_E-exp(sum_cos/n);*/
+
+    //Schwefel function
+    double ret=0;
+    for(auto x:v){
+        ret-=x*sin(sqrt(abs(x)));
+    }
+    return ret;
+}
+
+//vector cout
+template<typename T>
+inline ostream &operator<<(ostream &os,const vector<T> &v) {
+    bool sp=true;
+    if(string(typeid(T).name())=="c") sp=false;
+    for(size_t i=0;i<v.size();i++){
+        if(i and sp) os<<" ";
+        os<<v[i];
+    }
+    return os;
+}
 
 int main(){
+    SuccessiveHalving<vector<double>,double> SH;
+    for(int i=0;i<100000;i++){
+        vector<double> v;
+        for(int j=0;j<10;j++){
+            double x=rand()%400;
+            if(rand()%2) x*=-1;
+            v.push_back(x);
+        }
+        SH.add_state(v,f(v));
+    }
 
+    SH.build(1000);
+
+    while(true){
+        auto [v,score]=SH.next_state();
+        if(score<-INF/10) break;
+        int id=rand()%10;
+        double diff=1;
+        if(rand()%2) diff*=-1;
+        v[id]+=diff;
+        if(abs(v[id])>500) continue;
+
+        double next_score=f(v);
+        if(f(v)<score){
+            score=next_score;
+        }else{
+            v[id]-=diff;
+        }
+    }
+    cerr<<SH.cnt_call_<<endl;
 }
