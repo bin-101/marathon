@@ -1,6 +1,6 @@
 /*
 参考: https://topcoder-tomerun.hatenablog.jp/entry/2022/11/06/145156
-初期化がO(1)のbool配列
+初期化がO(1)の配列
 */
 //#define NDEBUG
 
