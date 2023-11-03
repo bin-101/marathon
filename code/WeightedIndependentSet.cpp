@@ -1,9 +1,10 @@
 /*
 重みがすべて同じ場合、O(1.466^n n)
 __builtin_ctzllを使っているから、頂点が65以上の場合は無理
-頂点数が32以下: C=u32 みたいな感じ
+頂点数が32以下: C=int みたいな感じ
 参考: https://judge.yosupo.jp/submission/5455
-verify: https://judge.yosupo.jp/submission/169899
+verify: https://judge.yosupo.jp/submission/169906
+    重みあり: https://judge.u-aizu.ac.jp/onlinejudge/review.jsp?rid=8457850
 */
 
 //#define NDEBUG
@@ -179,6 +180,7 @@ using Graph=vector<vector<int>>;
 
 template<class T,class C>
 struct WeightedIndependentSet{
+    bool is_weighted_;
     int N_;
     vector<T> weight_; //頂点の重み
     vector<C> graph_;
@@ -247,17 +249,16 @@ struct WeightedIndependentSet{
 
 		//上界を計算
 		//ついでに選ぶ頂点を決める
-		//重みなし: 次数が低い頂点
-		//重みあり: 一番重い頂点　がよさそう？
+		//重みありの場合、一番重い頂点　がよさそう？
 		T value_upper=now_value;
 		int v_select=-1;
-		int min_degree=MAX;
+		T max_weight=-1;
 		for(C S=vertices_undecided;S;S&=S-1){
 			int v=__builtin_ctzll(S); //Sを下から見る
 			if(can_add(v,now_solution) and weight_[v]>0){
 				value_upper+=weight_[v];
 			}
-			if(chmin(min_degree,popcount(graph_[v]))){
+			if(chmax(max_weight,weight_[v])){
 				v_select=v;
 			}
 		}
@@ -283,6 +284,7 @@ struct WeightedIndependentSet{
     }
 };
 
+//yosupo_judge
 void solve(){
 	int N,M;
 	cin>>N>>M;
@@ -297,6 +299,37 @@ void solve(){
 	auto ans=S.solve();
 	cout<<ans.size()<<endl;
 	cout<<ans<<endl;
+}
+//https://judge.u-aizu.ac.jp/onlinejudge/description.jsp?id=3519
+void solve_AOJ(){
+    int M,N;
+    cin>>M>>N;
+    vector<bitset<1000>> humans(M);
+    vector<int> weight(M);
+    int sum_human=0;
+    for (int m=0;m<M;m++) {
+        int l;
+        cin>>l;
+        weight[m]=l;
+        sum_human+=l;
+        while(l--){
+            int x;
+            cin>>x;
+            x--;
+            humans[m].set(x);
+        }
+    }
+
+    WeightedIndependentSet<int,ll> S(M,weight);
+
+    for(int i=0;i<M;i++){
+        for(int j=0;j<M;j++){
+            if(i==j) continue;
+            if((humans[i]&humans[j]).any()) S.add_edge(i,j);
+        }
+    }
+    S.solve();
+    cout<<sum_human-S.best_value_<<endl;
 }
  
 int main(){
