@@ -338,6 +338,13 @@ struct IndexSet{
             remove(set_.back());
         }
     }
+    vector<int> make_vector(){
+        vector<int> v;
+        for(int x:set_){
+            v.push_back(x);
+        }
+        return v;        
+    }
     friend ostream& operator<<(ostream& os, const IndexSet& S) {
         vector<int> v;
         for(int x:S.set_){
@@ -352,8 +359,23 @@ struct IndexSet{
         }
         return os;
     }
+	inline auto begin() -> decltype(set_.begin()) {
+		return set_.begin();
+	}
+
+	inline auto end() -> decltype(set_.begin()) {
+		return set_.begin() + set_.size_;
+	}
+
+	inline auto begin() const -> decltype(set_.begin()) {
+		return set_.begin();
+	}
+
+	inline auto end() const -> decltype(set_.begin()) {
+		return set_.begin() + set_.size_;
+	}
 };
- 
+
 int main(){
 {
     IndexSet<10000> S;
