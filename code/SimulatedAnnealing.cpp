@@ -198,8 +198,9 @@ struct SimulatedAnnealing{
     inline bool operator()(float diff){
         testCounter.count("try_cnt");
         if(minimum) diff*=-1;
-        if(diff>0){
-            testCounter.count("plus_change");
+        if(diff>=0){
+            if(diff==0) testCounter.count("zero_change");
+            else testCounter.count("plus_change");
             return true;
         }
         if(is_hill) return false;
