@@ -264,6 +264,21 @@ public:
         array_[idx]=array_[size_-1];
         size_--;
     }
+    //最初から見ていき、一致したものを削除(remove)
+    bool erase(T value){
+        for(int i=0;i<size_;i++){
+            if(array_[i]==value){
+                remove(i);
+                return true;
+            }
+        }
+        return false;
+    }
+    void reverse(){
+        for(int i=0;i<size_/2;i++){
+            swap(array_[i],array_[size_-1-i]);
+        }
+    }
     //O(size)
     //順序を気にしない場合、swap_removeの方がいい
     void remove(int idx){
@@ -423,124 +438,12 @@ void shuffle(vector<T> &v){
     }
 }
 
-//[0,n)の集合を管理
-//値の追加・削除・存在確認: O(1)
-//空間計算量: O(n)
-//重複は許さない
-//https://topcoder-tomerun.hatenablog.jp/entry/2021/06/12/134643
-template<int CAPACITY>
-struct IntSet{
-    DynamicArray<int,CAPACITY> set_;
-    array<int,CAPACITY> pos_;
-
-    IntSet(){
-        for(int i=0;i<CAPACITY;i++){
-            pos_[i]=-1;
-        }
-        set_.clear();
-    }
-    void insert(int v){
-        //assert(pos_[v]==-1);
-        if(pos_[v]!=-1) return;
-        pos_[v]=set_.size();
-        set_.push_back(v);
-    }
-
-    void remove(int v){
-        assert(pos_[v]!=-1);
-        int last=set_[set_.size()-1];
-        set_[pos_[v]]=last;
-        pos_[last]=pos_[v];
-        set_.pop_back();
-        pos_[v]=-1;
-    }
-
-    bool contains(int v)const{
-        return pos_[v]!=-1;
-    }
-
-    int size()const{
-        return set_.size();
-    }
-
-    int random()const{
-        assert(set_.size());
-        int x=set_[Rand32(set_.size())];
-        assert(pos_[x]!=-1);
-        return x;
-    }
-
-    int random_extract(){
-        int v=set_[Rand32(set_.size())];
-        remove(v);
-        return v;
-    }
-    void clear(){
-        while(size()){
-            remove(set_.back());
-        }
-    }
-};
-
-///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 template<class T,class U>
 T linear_function(U x,U start_x,U end_x,T start_value,T end_value){
     if(x>=end_x) return end_value;
     if(x<=start_x) return start_value;
     return start_value+(end_value-start_value)*(x-start_x)/(end_x-start_x);
 }
-
-//http://gasin.hatenadiary.jp/entry/2019/09/03/162613
-struct SimulatedAnnealing{
-    float startTemp; //差の最大値(あくまでも参考)
-    float endTemp; //差の最小値(あくまでも参考)
-    float startTime;
-    float endTime;
-    bool yama;
-    bool minimum;
-    //SimulatedAnnealing(){}
-    SimulatedAnnealing(float startTemp,float endTemp,float startTime,float endTime,bool yama,bool minimum):
-        startTemp(startTemp),endTemp(endTemp),startTime(startTime),endTime(endTime),yama(yama),minimum(minimum){
-    }
-    float calc_temp(){
-        return linear_function(float(TIME.span()),startTime,endTime,startTemp,endTemp); //線形
-        //https://atcoder.jp/contests/ahc014/submissions/35326979
-        /*float progress=(TIME.span()-startTime)/(endTime-startTime);
-        if(progress>1.0) progress=1.0;
-        return pow(startTemp,1.0-progress)*pow(endTemp,progress);*/
-    }
-    float calc_prob(float diff){
-        if(minimum) diff*=-1;
-        if(diff>0) return 1;
-        float temp=calc_temp();
-        return exp(diff/temp);
-    }
-    float calc_diff(float prob){
-        float diff=log(prob)*calc_temp();
-        if(minimum) diff*=-1;
-        return diff;
-    }
-    inline bool operator()(float diff){
-        testCounter.count("try_cnt");
-        if(minimum) diff*=-1;
-        if(diff>0){
-            testCounter.count("plus_change");
-            return true;
-        }
-        if(yama) return false;
-        float prob;
-        if(minimum) prob=calc_prob(diff*-1);
-        else prob=calc_prob(diff);
-        if(prob>float(Rand32()&mask(30))/mask(30)){
-            testCounter.count("minus_change");
-            return true;
-        }
-        else return false;
-    }
-};
 
 ///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
