@@ -130,6 +130,11 @@ struct Xor32{
     inline float random01(){
         return float(rnd_make())/mask(32);
     }
+    inline double random_double(double a,double b){
+        double sa=b-a;
+        a+=random01()*sa;
+        return a;
+    }
     //確率pでtrueを返す
     inline bool gen_bool(float p){
         return p>random01();
