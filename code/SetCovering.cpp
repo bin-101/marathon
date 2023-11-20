@@ -867,7 +867,7 @@ narrow_downの引数degはパラメータ調整が必要
 
 flip2(削除・挿入)とflip3(削除・削除・挿入)も書いた(https://yukicoder.me/submissions/929410)
 
-verify: 
+verify: https://yukicoder.me/submissions/929830
 参考
 [1]https://www.kurims.kyoto-u.ac.jp/~kyodo/kokyuroku/contents/pdf/1114-22.pdf
 [2]https://onlinelibrary.wiley.com/doi/abs/10.1002/1520-6750(199510)42:7%3C1129::AID-NAV3220420711%3E3.0.CO;2-M
