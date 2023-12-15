@@ -213,6 +213,30 @@ public:
     void push_back(const T &e){
         array_[size_++]=e;
     }
+    //ソートされた状態を保つように挿入
+    void insert(const T &e){
+        int ng=-1,ok=size_;
+        while(ok-ng!=1){
+            int mid=(ok+ng)/2;
+            if(array_[mid]>e) ok=mid;
+            else ng=mid;
+        }
+        for(int i=size_;i>ok;i--){
+            array_[i]=array_[i-1];
+        }
+        array_[ok]=e;
+        size_++;
+    }
+    //eをこえる一番左の添字
+    int find_binary_search(const T &e)const{
+        int ng=-1,ok=size_;
+        while(ok-ng!=1){
+            int mid=(ok+ng)/2;
+            if(array_[mid]>=e) ok=mid;
+            else ng=mid;
+        }
+        return ok;
+    }
     void pop_back(){
         size_--;
     }
@@ -227,6 +251,9 @@ public:
         return size_;
     }
     inline T& back(){
+        return array_[size_-1];
+    }
+    const inline T& back()const{
         return array_[size_-1];
     }
 	inline auto begin() -> decltype(array_.begin()) {
@@ -254,6 +281,24 @@ public:
             array_[i]=e[i];
         }
         size_=e.size_;
+    }
+    bool operator==(const DynamicArray &v){
+        if(size_!=v.size_) return false;
+        for(int i=0;i<size_;i++){
+            if(array_[i]!=v[i]){
+                return false;
+            }
+        }
+        return true;
+    }
+    bool operator==(const vector<T> &v){
+        if(size_!=v.size()) return false;
+        for(int i=0;i<size_;i++){
+            if(array_[i]!=v[i]){
+                return false;
+            }
+        }
+        return true;
     }
     void clear(){
         size_=0;

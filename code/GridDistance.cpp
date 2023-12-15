@@ -1,6 +1,6 @@
 /*
-頂点にコストがある(マスaからマスbに行く際、マスbのコストがかかる)と仮定
-verify: https://yukicoder.me/submissions/929830
+TODO:
+
 */
 //#define NDEBUG
 
@@ -130,8 +130,6 @@ struct Xor32{
         return p>random01();
     }
 };
-
-
 struct Xor64{
     u64 x=1234567;
     inline u64 rnd_make(){
@@ -227,6 +225,30 @@ public:
     void push_back(const T &e){
         array_[size_++]=e;
     }
+    //ソートされた状態を保つように挿入
+    void insert(const T &e){
+        int ng=-1,ok=size_;
+        while(ok-ng!=1){
+            int mid=(ok+ng)/2;
+            if(array_[mid]>e) ok=mid;
+            else ng=mid;
+        }
+        for(int i=size_;i>ok;i--){
+            array_[i]=array_[i-1];
+        }
+        array_[ok]=e;
+        size_++;
+    }
+    //eをこえる一番左の添字
+    int find_binary_search(const T &e)const{
+        int ng=-1,ok=size_;
+        while(ok-ng!=1){
+            int mid=(ok+ng)/2;
+            if(array_[mid]>=e) ok=mid;
+            else ng=mid;
+        }
+        return ok;
+    }
     void pop_back(){
         size_--;
     }
@@ -241,6 +263,9 @@ public:
         return size_;
     }
     inline T& back(){
+        return array_[size_-1];
+    }
+    const inline T& back()const{
         return array_[size_-1];
     }
 	inline auto begin() -> decltype(array_.begin()) {
@@ -268,6 +293,24 @@ public:
             array_[i]=e[i];
         }
         size_=e.size_;
+    }
+    bool operator==(const DynamicArray &v){
+        if(size_!=v.size_) return false;
+        for(int i=0;i<size_;i++){
+            if(array_[i]!=v[i]){
+                return false;
+            }
+        }
+        return true;
+    }
+    bool operator==(const vector<T> &v){
+        if(size_!=v.size()) return false;
+        for(int i=0;i<size_;i++){
+            if(array_[i]!=v[i]){
+                return false;
+            }
+        }
+        return true;
     }
     void clear(){
         size_=0;
@@ -452,11 +495,6 @@ void shuffle(vector<T> &v){
     }
 }
 
-
-///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 template<class T,class U>
 T linear_function(U x,U start_x,U end_x,T start_value,T end_value){
     if(x>=end_x) return end_value;
@@ -464,83 +502,6 @@ T linear_function(U x,U start_x,U end_x,T start_value,T end_value){
     return start_value+(end_value-start_value)*(x-start_x)/(end_x-start_x);
 }
 
-//http://gasin.hatenadiary.jp/entry/2019/09/03/162613
-struct SimulatedAnnealing{
-    float temp_start; //差の最大値(あくまでも参考)
-    float temp_end; //差の最小値(あくまでも参考)
-    float time_start;
-    float time_end;
-    bool is_hill;
-    bool minimum;
-    int interval; //intervalごとに温度の再計算
-
-    float temp_now;
-    int cnt_calc_temp;
-    /*
-    0:線形
-    1:pow pow
-    2:指数
-    */
-    int type_temp=0;
-
-    //SimulatedAnnealing(){}
-    SimulatedAnnealing(float temp_start,float temp_end,float time_start,float time_end,bool is_hill,bool minimum,int interval=1):
-        temp_start(temp_start),temp_end(temp_end),time_start(time_start),time_end(time_end),
-        is_hill(is_hill),minimum(minimum),interval(interval),temp_now(temp_start),cnt_calc_temp(0){
-    }
-    float calc_temp(){
-        if(cnt_calc_temp%interval==0){
-            float progress=float(TIME.span()-time_start)/(time_end-time_start);
-            if(progress>1.0) progress=1.0;
-            if(type_temp==0){//線形
-                temp_now=temp_start*(1.0-progress)+temp_end*progress;
-            }else if(type_temp==1){ //https://atcoder.jp/contests/ahc014/submissions/35326979
-                temp_now = pow(temp_start,1.0-progress)*pow(temp_end,progress);
-            }else{ //https://ozy4dm.hateblo.jp/entry/2022/12/22/162046#68-%E3%83%97%E3%83%AB%E3%83%BC%E3%83%8B%E3%83%B3%E3%82%B0%E6%97%A9%E6%9C%9F%E7%B5%82%E4%BA%86%E5%8D%98%E7%B4%94%E5%8C%96%E3%81%95%E3%82%8C%E3%81%9F%E8%A8%88%E7%AE%97%E3%82%92%E4%BD%BF%E7%94%A8%E3%81%99%E3%82%8B
-                temp_now = temp_start*pow(temp_end/temp_start,progress);
-            }
-        }
-        cnt_calc_temp++;
-        return temp_now;
-    }
-    //diff: スコアの変化量
-    //確率を計算
-    float calc_prob(float diff){
-        if(minimum) diff*=-1;
-        if(diff>0) return 1;
-        float temp=calc_temp();
-        return exp(diff/temp);
-    }
-    inline bool operator()(float diff){
-        testCounter.count("try_cnt");
-        if(minimum) diff*=-1;
-        if(diff>=0){
-            if(diff==0) testCounter.count("zero_change");
-            else testCounter.count("plus_change");
-            return true;
-        }
-        if(is_hill) return false;
-
-        float prob = exp(diff/calc_temp());
-
-        if(Rand32.gen_bool(prob)){
-            testCounter.count("minus_change");
-            return true;
-        }
-        else return false;
-    }
-    //最大化の場合,返り値<変化量なら遷移してもよい
-    float calc_tolerance(float prob){
-        float tolerance=log(prob)*calc_temp();
-        if(minimum) tolerance*=-1;
-        return tolerance;
-    }
-    //log(prob)*temp prob:[0,1]の乱数
-    float calc_tolerance(){
-        float prob=Rand32.random01();
-        return calc_tolerance(prob);
-    }
-};
 ///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ///++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -557,9 +518,9 @@ namespace OP{
     REGIST_PARAM(endTemp,float,0);
     REGIST_PARAM(TIME_END,int,1900);
 };
-constexpr int Height=50;
-constexpr int Width=50;
-vector<string> ans;
+
+int Height,Width;
+vector<vector<vector<bool>>> ok_move_input;
 struct Place{
     int h,w;
     Place(){}
@@ -569,17 +530,25 @@ struct Place{
     Place(int idx):h(idx/Width),w(idx%Width){
  
     }
-    int dist(const Place &np)const{
-        return abs(np.h-h)+abs(np.w-w);
+    int dist(const Place &np){
+        return sqrt(double(h-np.h)*(h-np.h) + double(w-np.w)*(w-np.w))+1;
     }
 
     Place pre_place(int dir){
         return Place(h-dh[dir],w-dw[dir]);
     }    
     Place next_place(int dir){
+        if(ok_move_input[h][w][dir]==false){
+            return Place(-1,-1);
+        }
         return Place(h+dh[dir],w+dw[dir]);
     }
     void move(int dir){
+        if(ok_move_input[h][w][dir]==false){
+            h=-1;
+            w=-1;
+            return;
+        }
         h+=dh[dir];
         w+=dw[dir];
     }
@@ -588,9 +557,9 @@ struct Place{
         w-=dw[dir];        
     }
     bool ok_move(int dir){
-        return h+dh[dir]<Height and w+dw[dir]<Width and h+dh[dir]>=0 and w+dw[dir]>=0;
+        return ok_move_input[h][w][dir];
     }
-    bool out_grid(){
+    bool out_grid()const{
         return h>=Height or w>=Width or h<0 or w<0;
     }
     bool operator==(const Place &p){
@@ -599,11 +568,8 @@ struct Place{
     bool operator!=(const Place &p){
         return h!=p.h or w!=p.w;
     }
-    int idx(){
-        return h*Width+w;
-    }
     int id(){
-        return idx();
+        return h*Width+w;
     }
     //上下 左右
     bool operator<(Place &p){
@@ -618,11 +584,117 @@ struct Place{
         os<<p.h<<" "<<p.w;
         return os;
     }
-    void move(Place p){
-        h+=p.h;
-        w+=p.w;
+};
+
+vector<vector<ll>> dust_input;
+vector<Place> solution;
+vector<vector<DynamicArray<int,1000>>> solution_visit_day;
+
+vector<vector<DynamicArray<int,1000>>> make_solution_visit_day(const vector<Place> &solution){
+    auto solution_visit_day=vmake(Height,Width,DynamicArray<int,1000>(0));
+    for(int i=0;i<solution.size();i++){
+        if(solution[i].out_grid()) continue;
+        solution_visit_day[solution[i].h][solution[i].w].push_back(i);
+    }
+    return solution_visit_day;
+}
+
+template<class Cost>
+struct GridDistance{
+    using pti=pair<Cost,int>;
+    int Height;
+    int Width;
+    vector<vector<Cost>> cost_grid;
+    vector<vector<Cost>> dist_matrix;
+    GridDistance(int Height,int Width):Height(Height),Width(Width){
+        cost_grid=vmake(Height,Width,Cost(1));
+    }
+    void set_cost(int h,int w,Cost cost){
+        cost_grid[h][w]=cost;
+    }
+    void build(){
+        dist_matrix=vmake(Height*Width,Height*Width,numeric_limits<Cost>::max());
+        for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
+            dist_matrix[Place(h,w).id()]=dijkstra(Place(h,w));
+        }
+    }
+    vector<Cost> dijkstra(Place start){
+        vector<Cost> dist(Height*Width,numeric_limits<Cost>::max());
+        priority_queue<pti,vector<pti>,greater<pti>> que;
+
+        dist[start.id()]=0;
+        que.emplace(dist[start.id()],start.id());
+
+        while(que.size()){
+            Place now_place;
+            Cost now_cost;
+            tie(now_cost,now_place)=que.top(); que.pop();
+
+            if(now_cost>dist[now_place.id()]) continue;
+
+            for(int dir=0;dir<4;dir++){
+                auto next_place=now_place.next_place(dir);
+                if(next_place.out_grid()) continue;
+                Cost next_cost=dist[now_place.id()]+cost_grid[next_place.h][next_place.w];
+                if(chmin(dist[next_place.id()],next_cost)){
+                    que.emplace(next_cost,next_place.id());
+                }
+            }
+        }
+        return dist;
+    }
+
+    vector<Place> query_path(Place start,Place goal){
+        auto &dist=dist_matrix[start.id()];
+        vector<Place> path;
+        auto now_place=goal;
+        path.push_back(now_place);
+        while(now_place!=start){
+            for(int dir=0;dir<4;dir++){
+                auto np=now_place.next_place(dir);
+                if(np.out_grid()) continue;
+                if(dist[np.id()]+cost_grid[now_place.h][now_place.w]==dist[now_place.id()]){
+                    now_place=np;
+                    break;
+                }
+            }
+            path.push_back(now_place);
+        }
+        reverse(path.begin(),path.end());
+        return path;
+    }
+    Cost dist(Place start,Place goal){
+        return dist_matrix[start.id()][goal.id()];
     }
 };
+GridDistance<int> Distance(10,10);
+
+void input(){
+    cin>>Height;
+    Width=Height;
+    ok_move_input=vmake(Height,Width,4,false);
+
+    auto below=vmake(Height-1,Width,'a');
+    cin>>below;
+
+    for(int h=0;h<Height-1;h++) for(int w=0;w<Width;w++){
+        if(below[h][w]=='1') continue;
+        ok_move_input[h][w][Down]=true;
+        ok_move_input[h+1][w][Up]=true;
+    }
+
+    auto right=vmake(Height,Width-1,'a');
+    cin>>right;
+
+    for(int h=0;h<Height;h++) for(int w=0;w<Width-1;w++){
+        if(right[h][w]=='1') continue;
+        ok_move_input[h][w][Right]=true;
+        ok_move_input[h][w+1][Left]=true;
+    }
+
+    dust_input=vmake(Height,Width,1LL);
+    cin>>dust_input;
+}
 
 //[0,n)の集合を管理
 //値の追加・削除・存在確認: O(1)
@@ -719,826 +791,490 @@ struct IndexSet{
 		return set_.begin() + set_.size_;
 	}
 };
-
-template<class Cost>
-struct GridDistance{
-    using pti=pair<Cost,int>;
-    int Height;
-    int Width;
-    vector<vector<Cost>> cost_grid;
-    GridDistance(int Height,int Width):Height(Height),Width(Width){
-        cost_grid=vmake(Height,Width,Cost());
-    }
-    void set_cost(int h,int w,Cost cost){
-        cost_grid[h][w]=cost;
-    }
-    vector<Cost> dijkstra(Place start){
-        vector<Cost> dist(Height*Width,numeric_limits<Cost>::max());
-        priority_queue<pti,vector<pti>,greater<pti>> que;
-
-        dist[start.id()]=0;
-        que.emplace(dist[start.id()],start.id());
-
-        while(que.size()){
-            Place now_place;
-            Cost now_cost;
-            tie(now_cost,now_place)=que.top(); que.pop();
-
-            if(now_cost>dist[now_place.id()]) continue;
-
-            for(int dir=0;dir<4;dir++){
-                auto next_place=now_place.next_place(dir);
-                if(next_place.out_grid()) continue;
-                Cost next_cost=dist[now_place.id()]+cost_grid[next_place.h][next_place.w];
-                if(chmin(dist[next_place.id()],next_cost)){
-                    que.emplace(next_cost,next_place.id());
-                }
-            }
-        }
-        return dist;
-    }
-
-    pair<Cost,vector<char>> query_path(Place start,Place goal){
-        auto dist=dijkstra(start);
-        vector<Place> path;
-        auto now_place=goal;
-        path.push_back(now_place);
-        while(now_place!=start){
-            for(int dir=0;dir<4;dir++){
-                auto np=now_place.next_place(dir);
-                if(np.out_grid()) continue;
-                if(dist[np.id()]+cost_grid[now_place.h][now_place.w]==dist[now_place.id()]){
-                    now_place=np;
-                    break;
-                }
-            }
-            path.push_back(now_place);
-        }
-        reverse(path.begin(),path.end());
-        vector<char> path_dir;
-        for(int i=0;i+1<path.size();i++){
-            auto p=path[i];
-            for(int dir=0;dir<4;dir++){
-                auto np=p.next_place(dir);
-                if(np==path[i+1]){
-                    path_dir.push_back(dir);
-                    break;
-                }
-            }
-        }
-        return {dist[goal.id()],path_dir};
-    }
-};
-GridDistance<int> Distance(Height,Width);
-
-Place find_nearest(const Place &p,const vector<Place> &ps,bool easy=true){
-    int distance=MAX;
-    Place nearest;
-    for(auto np:ps){
-        int dist;
-        if(easy) dist=p.dist(np);
-        else dist=Distance.query_path(p,np).first;
-        if(chmin(distance,dist)){
-            nearest=np;
-        }
-    }
-    return nearest;
+ll sum_sequense(ll num){
+    return num*(num-1)/2;
 }
-template<class T>
-pair<Place,T> find_nearest(Place &p,vector<pair<Place,T>> &ps,bool easy=true){
-    int distance=MAX;
-    pair<Place,T> nearest;
-    for(auto np:ps){
-        int dist;
-        if(easy) dist=p.dist(np.first);
-        else dist=Distance.query_path(p,np.first).first;
-        if(chmin(distance,dist)){
-            nearest=np;
+ll calc_score(const DynamicArray<int,1000> &days,ll dust,ll solution_len){
+    if(days.size()==0) return MAX;
+    ll sum=0;
+    for(int i=0;i<days.size();i++){
+        ll sa=-1;
+        if(i+1==days.size()){
+            sa=solution_len+days[0]-days[i];
+        }else{
+            sa=days[i+1]-days[i];
         }
+        sum+=sum_sequense(sa)*dust;
     }
-    return nearest;
+    return sum;
 }
-void output_move(Place &start,Place goal){
-    auto path_dir=Distance.query_path(start,goal).second;
-    start=goal;
-    for(int dir:path_dir){
-        string s="1 ";
-        string c="U";
-        if(dir==0) c="R";
-        if(dir==1) c="D";
-        if(dir==2) c="L";
-        s+=c;
-        ans.push_back(s);
+//solutionのスコアを計算
+ll calc_score(const vector<Place> &solution){
+    testTimer.start("calc_score");
+    auto visit=vmake(Height,Width,vector<int>());
+
+    int day=-1;
+    for(int i=0;i<solution.size();i++){
+        if(solution[i].out_grid()) continue;
+        visit[solution[i].h][solution[i].w].push_back(i);
     }
-}
+    /*for(Place p:solution){
+        day++;
+        if(p.out_grid()) continue;
+        visit[p.h][p.w].push_back(day);
+    }*/
 
-struct Bomb{
-    int cost;
-    vector<Place> ps;
-};
-constexpr int num_bomb=20;
-auto map_input=vmake(Height,Width,'.');
-vector<Bomb> bombs(num_bomb);
-
-void input(){
-    int dummy;
-    cin>>dummy>>dummy;
+    ll sum=0;
+    ll len=solution.size();
+    //cerr<<sum_sequense(len)<<endl;
     for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
-        cin>>map_input[h][w];
+        if(visit[h][w].size()==0){
+            testTimer.end("calc_score");
+            sum+=MAX;
+            continue;
+        }
+        visit[h][w].push_back(len+visit[h][w][0]);
+        for(int i=0;i+1<visit[h][w].size();i++){
+            ll sa=visit[h][w][i+1]-visit[h][w][i];
+            sum+=sum_sequense(sa)*dust_input[h][w];
+        }
+        visit[h][w].pop_back();
     }
-    for(int b=0;b<num_bomb;b++){
-        cin>>bombs[b].cost;
-        int size;
-        cin>>size;
-        bombs[b].ps.resize(size);
-        cin>>bombs[b].ps;
+#ifndef NDEBUG
+    ll sum2=0;
+    auto visit_day=make_solution_visit_day(solution);
+    for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
+        assert(visit_day[h][w]==visit[h][w]);
+        sum2+=calc_score(visit_day[h][w],dust_input[h][w],solution.size());
     }
+    assert(sum==sum2);
+#endif
+    return sum;
 }
 
-/*
-集合被覆問題のライブラリ
-
-メインのアルゴリズム: 焼きなまし法(近傍は[2]を参考にした)
-初期解: 「新しくカバーできる箇所の個数/コスト」が最大のものを選ぶ貪欲で構築
-近傍: 解の一部を削除する。カバーできていない要素をランダムに選んで、それを含んでいる集合の中で「」が最大のものを選ぶ貪欲で再構築。解の中に削除できるものがあれば削除
-
-kanwa: 集合を少なくする([1]の3章を参考にして書いた)
-narrow_downの引数degはパラメータ調整が必要
-
-flip2(削除・挿入)とflip3(削除・削除・挿入)も書いた(https://yukicoder.me/submissions/929410)
-
-verify: https://yukicoder.me/submissions/929830
-参考
-[1]https://www.kurims.kyoto-u.ac.jp/~kyodo/kokyuroku/contents/pdf/1114-22.pdf
-[2]https://onlinelibrary.wiley.com/doi/abs/10.1002/1520-6750(199510)42:7%3C1129::AID-NAV3220420711%3E3.0.CO;2-M
-*/
-template<class Name,class Cost,int max_num_element,int max_num_set>
-struct SetCovering{
-    struct Set{
-        Name name;
-        Cost cost;
-        vector<int> elements;
-        bitset<max_num_element> bits;
-        Set(Name name,Cost cost,vector<int> elements):
-            name(name),cost(cost),elements(elements){
-                bits.reset();
-                for(int element:elements){
-                    bits.flip(element);
-                }
+void make_initial_solution(){
+    solution.push_back(Place(0,0));
+    auto visited=vmake(Height,Width,false);
+    visited[0][0]=true;
+    Place now_place(0,0);
+    while(true){
+        Place next_place(-1,-1);
+        int near_dist=MAX;
+        for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
+            if(visited[h][w]) continue;
+            if(chmin(near_dist,Distance.dist(now_place,Place(h,w)))){
+                next_place=Place(h,w);
             }
-    };
-    int num_element;
-    vector<Set> sets;
-
-    vector<int> best_solution;
-    Cost best_cost;
-
-    vector<vector<int>> sets_contain;
-    vector<int> candidate_sets;
-
-    //現在注目している解
-    IndexSet<max_num_set> now_solution;
-    IndexSet<max_num_element> uncovered_element;
-    vector<int> cnt_covered;
-    vector<int> num_uncovered_element;
-    Cost now_cost;
-
-    SetCovering(int num_element):num_element(num_element),sets_contain(num_element),
-        cnt_covered(num_element),
-        num_uncovered_element(max_num_set),now_cost(0){
-        for(int i=0;i<num_element;i++){
-            uncovered_element.insert(i);
+        }
+        if(next_place.h==-1) break;
+        assert(next_place!=Place(-1,-1));
+        auto route=Distance.query_path(now_place,next_place);
+        for(int i=1;i<route.size();i++){
+            solution.push_back(route[i]);
+        }
+        visited[next_place.h][next_place.w]=true;
+        now_place=next_place;
+    }
+    if(now_place!=Place(0,0)){
+        auto route=Distance.query_path(now_place,Place(0,0));
+        for(int i=1;i<route.size();i++){
+            solution.push_back(route[i]);
         }
     }
-    void add_set(Name name,Cost cost,vector<int> elements){
-        Set set({name,cost,elements});
-        sets.push_back(set);
-        for(int element:set.elements){
-            sets_contain[element].push_back(sets.size()-1);
-        }
-        candidate_sets.push_back(sets.size()-1);
-        is_candidate.push_back(true);
+    auto solution2=solution;
+    for(int i=1;i<solution2.size();i++){
+        solution.push_back(solution2[i]);
     }
-    void calc_sets_contain(){
-        sets_contain.clear();
-        sets_contain.resize(num_element);
-        for(int id:candidate_sets){
-            for(int element:sets[id].elements){
-                sets_contain[element].push_back(id);
+    //solution_visit_day
+    solution_visit_day=vmake(Height,Width,DynamicArray<int,1000>(0));
+    for(int i=0;i<solution.size();i++){
+        solution_visit_day[solution[i].h][solution[i].w].push_back(i);
+    }
+}
+void output(){
+    vector<char> c={'R','D','L','U'};
+    vector<char> path_dir;
+    for(int i=0;i+1<solution.size();i++){
+        auto p=solution[i];
+        for(int dir=0;dir<4;dir++){
+            auto np=p.next_place(dir);
+            if(np==solution[i+1]){
+                path_dir.push_back(c[dir]);
+                break;
             }
         }
     }
+    cout<<path_dir<<endl;
+}
+//http://gasin.hatenadiary.jp/entry/2019/09/03/162613
+struct SimulatedAnnealing{
+    float temp_start; //差の最大値(あくまでも参考)
+    float temp_end; //差の最小値(あくまでも参考)
+    float time_start;
+    float time_end;
+    bool is_hill;
+    bool minimum;
+    int interval; //intervalごとに温度の再計算
 
-    //set_idsの中から一番コスパ(num_uncovered/cost)が良いものを貪欲に選んで返す
-    int greedy_one(const vector<int> &set_ids,bool contains_erased=true){
-        int id_best=-1;
-        double costper_best=-1;
-        for(int id:set_ids){
-            if(num_uncovered_element[id]==0) continue;
-            if(contains_erased==false and sets_erase.contains(id)) continue;
-            if(chmax(costper_best,double(num_uncovered_element[id])/sets[id].cost)){
-                id_best=id;
-            }
-        }
-        return id_best;
-    }
-    
-    void add_solution(int id_set){
-        for(int element:sets[id_set].elements){
-            cnt_covered[element]++;
-            if(cnt_covered[element]>1) continue;
-            uncovered_element.remove(element);
-            for(int id_set:sets_contain[element]){
-                num_uncovered_element[id_set]--;
-            }
-        }
-        now_cost+=sets[id_set].cost;
-        now_solution.insert(id_set);
-        if(sets_erase.contains(id_set)){
-            sets_erase.remove(id_set);
-        }else{
-            sets_add.insert(id_set);
-        }
-    }
-    void erase_solution(int id_set){
-        for(int element:sets[id_set].elements){
-            cnt_covered[element]--;
-            if(cnt_covered[element]) continue;
-            uncovered_element.insert(element);
-            for(int id_set:sets_contain[element]){
-                num_uncovered_element[id_set]++;
-            }
-        }
-        now_cost-=sets[id_set].cost;
-        now_solution.remove(id_set);
-        if(sets_add.contains(id_set)){
-            sets_add.remove(id_set);
-        }else{
-            sets_erase.insert(id_set);
-        }
-    }
-    //0: 消した 1:追加した
-    IndexSet<max_num_set> sets_add;
-    IndexSet<max_num_set> sets_erase;
-
-    void neighborhood(){
-        //解から消す
-        int num_erase=Rand32(1,now_solution.size()*0.1);
-        for(int i=0;i<num_erase;i++){
-            int id=now_solution.random();
-            erase_solution(id);
-        }
-        bool not_first=false;
-        //貪欲で実行可能解にする
-        while(uncovered_element.size()){
-            int element=uncovered_element.random();
-            int set_id=greedy_one(sets_contain[element],not_first);
-            //int set_id=greedy_one(candidate_sets);
-            assert(set_id!=-1);
-            add_solution(set_id);
-            not_first=true;
-        }
-        while(true){
-            int set_id=flip1();
-            if(set_id==-1) break;
-            erase_solution(set_id);
-        }
-    }
-    //O(解のサイズの次数の合計)
-    int flip1(){
-        for(int id_set:now_solution){
-            bool ok=true;
-            for(int element:sets[id_set].elements){
-                if(cnt_covered[element]==1){
-                    ok=false;
-                    break;
-                }
-            }
-            if(ok){
-                return id_set;
-            }
-        }
-        return -1;
-    }
-    //焼きなまし
-    void solve(int time_limit,double startTemp,bool is_hill){
-
-        for(int s:candidate_sets){
-            num_uncovered_element[s]=sets[s].elements.size();
-        }
-        now_cost=0;
-        now_solution.clear();
-
-        //貪欲法で初期解を作る
-        while(uncovered_element.size()){
-            int element=uncovered_element.random();
-            int set_id=greedy_one(candidate_sets);
-            add_solution(set_id);
-        }
-
-        cerr<<"cost(greedy): "<<now_cost<<endl;
-
-        best_cost=now_cost;
-        best_solution=now_solution.make_vector();
-
-        //candidate_setsを小さくする
-        //kanwa();
-
-        cerr<<"size(candidate_sets): "<<candidate_sets.size()<<endl;
-
-        int start_time=TIME.span();
-    //焼きなまし
-        //float temp_start,float temp_end,float time_start,float time_end,bool is_hill,bool minimum,int interval=1
-        SimulatedAnnealing SA(startTemp,0,start_time,start_time+time_limit,is_hill,true,1);
-
-        int cnt_update=0;
-        int cnt_try=0;
-        int T=10;
-
-
-
-        while(start_time+TIME.span()<time_limit or T--){
-            sets_add.clear();
-            sets_erase.clear();
-            Cost pre_cost=now_cost;
-            //cerr<<now_cost<<endl;
-            neighborhood();
-            cnt_try++;
-            double tol=SA.calc_tolerance();
-            if(SA(now_cost-pre_cost)){
-                cnt_update++;
-                if(chmin(best_cost,now_cost)){
-                    best_solution=now_solution.make_vector();
-                }
-            }else{
-                assert(sets_add.size() or sets_erase.size());
-                for(int id_set:sets_add){
-                    erase_solution(id_set);
-                }
-                for(int id_set:sets_erase){
-                    add_solution(id_set);
-                }
-                assert(pre_cost==now_cost);
-            }
-        }
-        cerr<<cnt_update<<"/"<<cnt_try<<endl;
-        cerr<<"best_cost: "<<best_cost<<endl;
-    }
-
-    vector<bool> is_candidate;
-
-    vector<int> s;
-    vector<double> relative_cost;
-
-    //candidate_sets
-    void set_relative_cost(const vector<double> &v){
-        relative_cost.resize(sets.size());
-        for(int id_set:candidate_sets){
-            double cost=sets[id_set].cost;
-            for(int element:sets[id_set].elements){
-                cost-=v[element];
-            }
-            relative_cost[id_set]=cost;
-        }
-    }
-    //各要素につき、上位deg個を残す
-    //被ったものも数に数える（つまり、deg*num_elementより少なくなる）
-    void narrow_down(int deg,const vector<double> &v){
-        vector<int> pre_candidates=candidate_sets;
-        set_relative_cost(v);
-        candidate_sets.clear();
-        is_candidate.assign(sets.size(),false);
-
-        sort(pre_candidates.begin(),pre_candidates.end(),
-            [&](int i,int j){
-                return relative_cost[i]<relative_cost[j];
-            });
-        for(int i=0;i<min<int>(pre_candidates.size(),deg*num_element);i++){
-            candidate_sets.push_back(pre_candidates[i]);
-            is_candidate[i]=true;
-        }
-
-        for(int element=0;element<num_element;element++){
-            vector<int> ids;
-            for(int id:sets_contain[element]){
-                ids.push_back(id); 
-            }
-            sort(ids.begin(),ids.end(),
-                [&](int i,int j){
-                    return relative_cost[i]<relative_cost[j];
-                });
-            for(int i=0;i<min<int>(deg,ids.size());i++){
-                int id=ids[i];
-                if(is_candidate[id]) continue;
-                candidate_sets.push_back(id);
-                is_candidate[id]=true;
-            }
-        }
-        calc_sets_contain();
-    }
-
-    double calc_L(const vector<double> &v){
-        set_relative_cost(v);
-        s.assign(num_element,1);
-        double sum=0;
-        for(double x:v){
-            sum+=x;
-        }
-        for(int set_id:candidate_sets){
-            if(relative_cost[set_id]<0){
-                sum+=relative_cost[set_id];
-                for(int element:sets[set_id].elements){
-                    s[element]--;
-                }
-            }
-        }
-        return sum;
-    }
-
+    float temp_now;
+    int cnt_calc_temp;
     /*
-    最初: 1個の要素につき上位10個
-    最終: 1個の要素につき上位5個
+    0:線形
+    1:pow pow
+    2:指数
     */
-    void kanwa(){
-        assert(best_cost!=0);
-        //vの初期化
-        vector<double> v(num_element,numeric_limits<double>::max());
-        for(auto &set:sets){
-            for(int element:set.elements){
-                chmin(v[element],double(set.cost)/set.elements.size());
-            }
-        }
-        //1個の要素につき上位10個
-        narrow_down(20,v);
+    int temp_type;
+    
 
-        //vの更新
-        int T=100;
-        double lamda=4;
-        int beta=15;
-        double rho=1.2;
-        
-        double max_L=calc_L(v);
-        vector<int> max_s=s;
-        vector<double> max_v=v; //Lを最大にするv
-
-        while(T--){
-            double L=calc_L(v);
-            if(chmax(max_L,L)){
-                max_v=v;
-            }else{
-                L=max_L;
-                v=max_v;
-                s=max_s;
-                lamda/=rho;
-            }
-            double s2_sum=0;
-            for(int x:s){
-                s2_sum+=x*x;
-            }
-            for(int element=0;element<num_element;element++){
-                v[element]=max(0.0,v[element]+lamda*(best_cost-L)/s2_sum*s[element]);
-                //v[element]=max<double>(0.0,v[element]+0.1*s[element]);
-            }
-            cerr<<"L: "<<L<<endl;
-            assert(L<=best_cost);
-        }
-        cerr<<"max_L: "<<max_L<<endl;
-
-        
-        //1個の要素につき上位5個
-        narrow_down(10,max_v);
+    //SimulatedAnnealing(){}
+    SimulatedAnnealing(float temp_start,float temp_end,float time_start,float time_end,bool is_hill,bool minimum,int temp_type=2,int interval=1):
+        temp_start(temp_start),temp_end(temp_end),time_start(time_start),time_end(time_end),
+        is_hill(is_hill),minimum(minimum),temp_type(temp_type),interval(interval),temp_now(temp_start),cnt_calc_temp(0){
     }
+    float calc_temp(){
+        if(cnt_calc_temp%interval==0){
+            float progress=float(TIME.span()-time_start)/(time_end-time_start);
+            if(progress>1.0) progress=1.0;
+            if(temp_type==0){//線形
+                temp_now=temp_start*(1.0-progress)+temp_end*progress;
+            }else if(temp_type==1){ //https://atcoder.jp/contests/ahc014/submissions/35326979
+                temp_now = pow(temp_start,1.0-progress)*pow(temp_end,progress);
+            }else{ //https://ozy4dm.hateblo.jp/entry/2022/12/22/162046#68-%E3%83%97%E3%83%AB%E3%83%BC%E3%83%8B%E3%83%B3%E3%82%B0%E6%97%A9%E6%9C%9F%E7%B5%82%E4%BA%86%E5%8D%98%E7%B4%94%E5%8C%96%E3%81%95%E3%82%8C%E3%81%9F%E8%A8%88%E7%AE%97%E3%82%92%E4%BD%BF%E7%94%A8%E3%81%99%E3%82%8B
+                temp_now = temp_start*pow(temp_end/temp_start,progress);
+            }
+        }
+        cnt_calc_temp++;
+        return temp_now;
+    }
+    //diff: スコアの変化量
+    //確率を計算
+    float calc_prob(float diff){
+        if(minimum) diff*=-1;
+        if(diff>0) return 1;
+        float temp=calc_temp();
+        return exp(diff/temp);
+    }
+    inline bool operator()(float diff){
+        testCounter.count("try_cnt");
+        if(minimum) diff*=-1;
+        if(diff>=0){
+            if(diff==0) testCounter.count("zero_change");
+            else testCounter.count("plus_change");
+            return true;
+        }
+        if(is_hill) return false;
 
+        float prob = exp(diff/calc_temp());
+
+        if(Rand32.gen_bool(prob)){
+            testCounter.count("minus_change");
+            return true;
+        }
+        else return false;
+    }
+    //最大化の場合,返り値<変化量なら遷移してもよい
+    float calc_tolerance(float prob){
+        float tolerance=log(prob)*calc_temp();
+        if(minimum) tolerance*=-1;
+        return tolerance;
+    }
+    //log(prob)*temp prob:[0,1]の乱数
+    float calc_tolerance(){
+        float prob=Rand32.random01();
+        return calc_tolerance(prob);
+    }
 };
 
-struct HashMap{
-    vector<u64> table;
-    HashMap(int size):table(size){
-        for(auto &x:table){
-            x=Rand64();
+//float temp_start,float temp_end,float time_start,float time_end,bool is_hill,bool minimum,int temp_type=0,int interval=1
+SimulatedAnnealing SA(10000,0,0,1800,false,true);
+
+//サイズが0になったら+MAX
+ll calc_different_erase(const DynamicArray<int,1000> &days,int erase_day,int solution_len,ll dust){
+    assert(days.size());
+    if(days.size()==1){
+        return ll(MAX)-sum_sequense(solution_len)*dust;
+    }
+    int erase_id=days.find_binary_search(erase_day);
+    int pre_day=-1,post_day=-1;
+    if(erase_id==0){
+        pre_day=int(days.back())-solution_len;
+    }else{
+        pre_day=days[erase_id-1];
+    }
+    if(erase_id+1==days.size()){
+        post_day=days[0]+solution_len;
+    }else{
+        post_day=days[erase_id+1];
+    }
+    ll ret=sum_sequense(post_day-pre_day)-sum_sequense(erase_day-pre_day)-sum_sequense(post_day-erase_day);
+    return ret*dust;
+}
+
+//サイズが0になったら+MAX
+ll calc_different_add(const DynamicArray<int,1000> &days,const vector<int> &add_days,int solution_len,ll dust,int start_day,int num_interval){
+    ll ret=0;
+    if(days.size()==0){
+        if(add_days.size()){
+            for(int i=0;i+1<add_days.size();i++){
+                ret+=sum_sequense(add_days[i+1]-add_days[i]);
+            }
+            ret+=sum_sequense(add_days[0]+solution_len-add_days.back()+num_interval);
+            ret=-MAX+ret*dust;
+        }else{
+            ret=0;
         }
-    }
-    u64 operator[](int id){
-        return table[id];
-    }
-};
-HashMap hashmap(1000);
-Place center_shop;
-template<class Action,class Score,class Hash>
-struct State{
-    static vector<Place> place_shop;
-    static vector<Place> place_action;
-    static vector<vector<int>> bakuha_shop;
-    vector<pii> history_actions;
-    vector<bool> is_bakuha_shop;
-    vector<bool> is_done_action;
-    int score;
-    Place now_place;
+    }else{
+        int pre_day=-1,post_day=-1;
 
-    State(int action_size,int shop_size):is_bakuha_shop(shop_size),is_done_action(action_size),score(0),now_place(0,0){
-        
-    }
-
-    Score calc_score(){
-        return score;
-    }
-    Hash calc_hash(){
-        u64 hash=0;
-        for(int i=0;i<is_done_action.size();i++){
-            if(is_done_action[i]==false) continue;
-            hash^=hashmap[i];
+        int pre_id=days.find_binary_search(start_day);
+        if(pre_id==0){
+            pre_day=days.back()-solution_len;
+        }else{
+            pre_day=days[pre_id-1];
         }
-        hash^=hashmap[100+now_place.id()];
-        return hash;
-    }
 
-    void apply(Action action){
-        int min_dist=MAX;
-        int nearest_shop=-1;
-        for(int i=0;i<is_bakuha_shop.size();i++){
-            if(is_bakuha_shop[i]) continue;
-            int dist=now_place.dist(place_shop[i])+place_shop[i].dist(place_action[action])*2;
-            if(chmin(min_dist,dist)){
-                nearest_shop=i;
+        int post_id=days.find_binary_search(start_day);
+        if(post_id==days.size()){
+            post_day=solution_len+days[0];
+        }else{
+            post_day=days[post_id];
+        }
+
+        ret=-sum_sequense(post_day-pre_day);
+
+        if(add_days.size()==0){
+            ret+=sum_sequense(post_day-pre_day+num_interval);
+        }else{
+            //最初
+            ret+=sum_sequense(add_days[0]-pre_day);
+            ret+=sum_sequense(post_day-add_days.back()+num_interval);
+            for(int i=0;i+1<add_days.size();i++){
+                ret+=sum_sequense(add_days[i+1]-add_days[i]);
             }
         }
-
-        score+=min_dist;
-        history_actions.emplace_back(action,nearest_shop);
-        is_done_action[action]=true;
-
-        //shopを爆破
-        for(int shop:bakuha_shop[action]){
-            is_bakuha_shop[shop]=true;
-        }
-        //移動
-        now_place=place_action[action];
-        if(history_actions.size()==is_done_action.size()){
-            score+=now_place.dist(center_shop);
-        }
+        ret*=dust;
     }
 
-    vector<Action> find_next_actions(){
-        vector<int> candidate;
-        int size_action=is_done_action.size();
-        for(int i=0;i<size_action;i++){
-            if(is_done_action[i]) continue;
-            candidate.push_back(i);
-        }
-        sort(candidate.begin(),candidate.end(),
-            [&](int i,int j){
-                return now_place.dist(place_action[i])<now_place.dist(place_action[j]);
-            }
-        );
-        if(candidate.size()>4){
-            candidate.resize(4);
-        }
-        return candidate;
+#ifndef NDEBUG
+    ll pre_score=calc_score(days,dust,solution_len);
+    DynamicArray<int,1000> change_days;
+    for(int day:days){
+        if(day>=start_day) break;
+        change_days.push_back(day);
     }
-    bool operator<(State &s){
-        return calc_score()<s.calc_score();
+    for(int day:add_days){
+        change_days.push_back(day);
     }
-};
-template<typename T1, typename T2,typename T3>
-vector<Place> State<T1, T2,T3>::place_shop;
+    for(int day:days){
+        if(day<start_day) continue;
+        change_days.push_back(day+num_interval);
+    }
+    ll post_score=calc_score(change_days,dust,solution_len+num_interval);
+    assert(post_score-pre_score==ret);
+#endif
+    return ret;
+}
 
-template<typename T1, typename T2,typename T3>
-vector<Place> State<T1, T2,T3>::place_action;
+vector<vector<vector<int>>> add_day=vmake(40,40,vector<int>());
+void neighbor(vector<Place> &now_solution,ll &now_cost){
+#ifndef NDEBUG
+{
+    auto pre_solution=now_solution;
+    assert(calc_score(now_solution)==now_cost);
+    auto visit_day=make_solution_visit_day(now_solution);
+    for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
+        assert(visit_day[h][w]==solution_visit_day[h][w]);
+    }
+}
+#endif
+    int start_id=Rand32(0,now_solution.size()-10);
+    int goal_id=Rand32(start_id+2,start_id+10);
 
-template<typename T1, typename T2,typename T3>
-vector<vector<int>> State<T1, T2,T3>::bakuha_shop;
-
-template<class Action,class Score,class State,class Hash>
-vector<pii> beam_search(State init_state,int width_beam,int max_depth){
-    vector<State> states={init_state};
-    vector<State> next_states;
-
-    for(int depth=0;depth<max_depth;depth++){
-        next_states.clear();
-#ifdef ONLINE_JUDGE
-        if(TIME.span()>2850){
-            width_beam=1;
+    //startからgoalまでの道を作る
+    //近くのよるマスを決めて、そこに最短経路で行って最短経路でgoalに行く
+    Place start_place=now_solution[start_id];
+    Place goal_place=now_solution[goal_id];
+    Place mid_place;
+    vector<Place> candidate;
+    for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
+        if(Distance.dist(start_place,Place(h,w))<=5){
+            candidate.emplace_back(h,w);
         }
+    }
+    mid_place=candidate[Rand32(candidate.size())];
+    auto route1=Distance.query_path(start_place,mid_place);
+    auto route2=Distance.query_path(mid_place,goal_place);
+    vector<Place> route;
+    for(int i=1;i<route1.size();i++){
+        route.push_back(route1[i]);
+    }
+    for(int i=1;i+1<route2.size();i++){
+        route.push_back(route2[i]);
+    }
+
+    //ここで差分計算を頑張る
+    //trueなら追加
+    struct ChangeDay{
+        bool is_add;
+        Place p;
+        int day;
+    };
+    ll change_sum=0;
+    //まず消す
+    vector<ChangeDay> change_day;
+    for(int i=start_id+1;i<goal_id;i++){
+        Place p=now_solution[i];
+        change_day.push_back({false,p,i});
+        //cerr<<"erase: "<<calc_different_erase(solution_visit_day[p.h][p.w],i,now_solution.size(),dust_input[p.h][p.w])<<endl;
+        ll change_value=calc_different_erase(solution_visit_day[p.h][p.w],i,now_solution.size(),dust_input[p.h][p.w]);
+        change_sum+=change_value;
+#ifndef NDEBUG
+        ll pre_score=calc_score(solution_visit_day[p.h][p.w],dust_input[p.h][p.w],now_solution.size());
 #endif
 
-        for(int i=0;i<min<int>(width_beam,states.size());i++){
-            vector<Action> next_actions=states[i].find_next_actions();
-            for(Action action:next_actions){
-                State state=states[i];
-                state.apply(action);
-                next_states.push_back(state);
-            }
-        }
-        sort(next_states.begin(),next_states.end());
-        states.clear();
-        unordered_set<u64> set;
-        for(int i=0;i<next_states.size() and states.size()<width_beam;i++){
-            auto &state=next_states[i];
-            u64 hash=state.calc_hash();
-            if(set.count(hash)){
-                continue;
-            }
-            set.insert(hash);
-            states.push_back(state);
-        }
+        solution_visit_day[p.h][p.w].erase(i);
+
+#ifndef NDEBUG
+        ll post_score=calc_score(solution_visit_day[p.h][p.w],dust_input[p.h][p.w],now_solution.size());
+        assert(post_score-pre_score==change_value);
+#endif
     }
-
-    sort(states.begin(),states.end());
-    cerr<<"score: "<<states[0].calc_score()<<endl;
-    return states[0].history_actions;
-}
-
-/*
-店は最後に爆破する
-*/
-void solve(){
-    input();
-//set coveringのインスタンスを作る
-    auto id_map=vmake(Height,Width,-1);
-    vector<Place> place_shops;
-    int num_hakai=0;
-
-    //一番コスパが高い爆弾の特定
-    int cheapest_bomb=-1;
-    double cheapest_cost=-1;
-    for(int i=0;i<num_bomb;i++){
-        if(chmax(cheapest_cost,bombs[i].ps.size()/bombs[i].cost)){
-            cheapest_bomb=i;
-        }
-    }
+#ifndef NDEBUG
 {
-    int min_center_dist=10000;
-    int id=0;
-    for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
-        if(map_input[h][w]=='.'){
-            Distance.set_cost(h,w,1);
-        }else{
-            Distance.set_cost(h,w,2);
-        }
-        if(map_input[h][w]=='@'){
-            if(chmin(min_center_dist,Place(25,25).dist(Place(h,w)))){
-                center_shop=Place(h,w);
-            }
-            place_shops.emplace_back(h,w);
-        }
-        if(map_input[h][w]!='#') continue;
+    auto erase_solution=now_solution;
+    for(int i=start_id+1;i<goal_id;i++){
+        erase_solution[i]=Place(-1,-1);
     }
+    auto visit_day=make_solution_visit_day(erase_solution);
     for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
-        if(map_input[h][w]=='.') continue;
-        if(center_shop==Place(h,w)) continue;
-        bool ex=true;
-        for(auto dp:bombs[cheapest_bomb].ps){
-            auto np=center_shop;
-            np.move(dp);
-            if(np==Place(h,w)) ex=false;
-        }
-        if(ex){
-            id_map[h][w]=id++;
-        }
+        assert(visit_day[h][w]==solution_visit_day[h][w]);
     }
-    num_hakai=id;
+    //cerr<<calc_score(now_solution)+change_sum<<endl;
+    //cerr<<calc_score(erase_solution)<<endl;
+    assert(abs(calc_score(now_solution)+change_sum-calc_score(erase_solution))==0);
 }
-    using pPi=pair<Place,int>;
-    SetCovering<pPi,int,2500,50000> SC(num_hakai);
-    for(int ph=0;ph<Height;ph++){
-        for(int pw=0;pw<Width;pw++){
-            Place p(ph,pw);
-            auto nearest_shop=find_nearest(p,place_shops,true);
-            int dist=p.dist(nearest_shop);
-            for(int b=0;b<num_bomb;b++){
-                vector<int> ids;
-                bool ok=true;
-                for(auto dp:bombs[b].ps){
-                    auto np=p;
-                    np.move(dp);
-                    if(np==center_shop){
-                        ok=false;
-                    }
-                    if(np.out_grid() or id_map[np.h][np.w]==-1){
-                        continue;
-                    }
-                    ids.push_back(id_map[np.h][np.w]);
-                }
-                if(not ok) continue;
-                SC.add_set(pPi(p,b),bombs[b].cost+4*dist*2,ids);
+#endif
+
+    ll num_interval=int(route.size())-int(change_day.size());
+    //add_dayを作成
+    for(int i=0;i<route.size();i++){
+        add_day[route[i].h][route[i].w].push_back(start_id+i+1);
+    }
+    //追加するのを差分計算　同時に間が開くのも考慮する
+    for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
+        ll change_value=calc_different_add(solution_visit_day[h][w],add_day[h][w],solution.size(),dust_input[h][w],start_id+1,num_interval);
+        change_sum+=change_value;
+    }
+
+#ifndef NDEBUG
+{
+    //next_solution作成
+    vector<Place> next_solution;
+    for(int i=0;i<=start_id;i++){
+        next_solution.push_back(now_solution[i]);
+    }
+    for(auto p:route){
+        next_solution.push_back(p);
+    }
+    for(int i=goal_id;i<now_solution.size();i++){
+        next_solution.push_back(now_solution[i]);
+    }
+    //cerr<<calc_score(next_solution)<<endl;
+    //cerr<<calc_score(now_solution)<<endl;
+    //cerr<<calc_score(now_solution)+change_sum-calc_score(next_solution)<<endl;
+    assert(calc_score(now_solution)+change_sum==calc_score(next_solution));
+    //cerr<<"yay!"<<endl;
+}
+#endif
+    ll real_now_cost=now_cost/now_solution.size();
+    ll real_next_cost=(now_cost+change_sum)/(ll(now_solution.size())+num_interval);
+
+    //cerr<<real_next_cost-real_now_cost<<endl;
+
+    if(not SA(real_next_cost-real_now_cost)){
+        reverse(change_day.begin(),change_day.end());
+        //元に戻す
+        //solution_visit_dayを変化させる
+        for(auto c:change_day){
+            if(c.is_add){
+                solution_visit_day[c.p.h][c.p.w].erase(c.day);
+            }else{
+                solution_visit_day[c.p.h][c.p.w].insert(c.day);
             }
         }
-    }
-    SC.solve(2000,10,false);
-    using pPi=pair<Place,int>;
-    vector<pPi> names;
-    for(int id:SC.best_solution){
-        names.push_back(SC.sets[id].name);
-    }
-    Place place_now(0,0);
-
-//ビームサーチ
-// template<>
-// vector<Place> State<int, int>::place_shop;
-// template<>
-// vector<Place> State<int, int>::place_action;
-// template<>
-// vector<int> State<int, int>::bakuha_shop;
-    using State=State<int,int,u64>;
-    State state(names.size(),place_shops.size());
-
-    state.place_shop=place_shops;
-    for(auto name:names){
-        state.place_action.push_back(name.first);
-    }
-    state.bakuha_shop.resize(names.size());
-    for(int a=0;a<names.size();a++){
-        for(int i=0;i<place_shops.size();i++){
-            auto shop=place_shops[i];
-            bool hakai=false;
-            for(auto dp:bombs[names[a].second].ps){
-                auto np=names[a].first;
-                np.move(dp);
-                if(shop==np) hakai=true;
-            }
-            if(hakai){
-                state.bakuha_shop[a].push_back(i);
-            }
+        for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
+            add_day[h][w].clear();
         }
+        return;
     }
-    auto actions_beam=beam_search<int,int,State,u64>(state,3000,names.size());
-
-
-    for(int i=0;i<actions_beam.size();i++){
-        //次のターゲット
-        pPi name_nearest=names[actions_beam[i].first];
-        //一番近くの店に行って必要な爆弾を買う
-        Place nearest_shop=state.place_shop[actions_beam[i].second];
-        output_move(place_now,nearest_shop);
-        ans.push_back("2 "+to_string(name_nearest.second+1));
-
-        //ターゲットのところに行って爆弾を落とす
-        output_move(place_now,name_nearest.first);
-        ans.push_back("3 "+to_string(name_nearest.second+1));
-
-        //ターゲットを消す
-        // for(int i=0;i<names.size();i++){
-        //     if(name_nearest.first==names[i].first and name_nearest.second==names[i].second){
-        //         names.erase(names.begin()+i);
-        //         break;
-        //     }
-        // }
-        vector<Place> next_place_shops;
-        for(auto shop:place_shops){
-            bool hakai=false;
-            for(auto dp:bombs[name_nearest.second].ps){
-                auto np=place_now;
-                np.move(dp);
-                if(shop==np) hakai=true;
-            }
-            if(not hakai) next_place_shops.push_back(shop);
-        }
-        for(auto dp:bombs[name_nearest.second].ps){
-            auto np=place_now;
-            np.move(dp);
-            if(np.out_grid()) continue;
-            if(Distance.cost_grid[np.h][np.w]==2){
-                Distance.set_cost(np.h,np.w,1);
-            }
-        }
-
-        place_shops=next_place_shops;
-    }
-    cerr<<-1<<endl;
-
-
-    while(place_shops.size()){
-        //一番近い店に行って一番安い爆弾を使う
-        Place nearest_shop=find_nearest(place_now,place_shops);
-        output_move(place_now,nearest_shop);
-        ans.push_back("2 "+to_string(cheapest_bomb+1));
-        ans.push_back("3 "+to_string(cheapest_bomb+1));
-
-        vector<Place> next_place_shops;
-        for(auto shop:place_shops){
-            bool hakai=false;
-            for(auto dp:bombs[cheapest_bomb].ps){
-                auto np=nearest_shop;
-                np.move(dp);
-                if(shop==np) hakai=true;
-            }
-            if(not hakai) next_place_shops.push_back(shop);
-        }
-
-        place_shops=next_place_shops;
-    }
-
-
-    cout<<ans.size()<<endl;
-    for(auto s:ans){
-        cout<<s<<"\n";
-    }
+    //now_cost
+    now_cost+=change_sum;
     
+    //solution_visit_day
+    for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
+        //まず足す
+        for(auto &day:solution_visit_day[h][w]){
+            if(day>start_id){
+                day+=int(route.size())-int(change_day.size());
+            }
+        }
+        //挿入
+        for(int day:add_day[h][w]){
+            solution_visit_day[h][w].insert(day);
+        }
+        add_day[h][w].clear();
+    }
+    //next_solution作成
+    vector<Place> next_solution;
+    for(int i=0;i<=start_id;i++){
+        next_solution.push_back(now_solution[i]);
+    }
+    for(auto p:route){
+        next_solution.push_back(p);
+    }
+    for(int i=goal_id;i<now_solution.size();i++){
+        next_solution.push_back(now_solution[i]);
+    }
+    now_solution=next_solution;
+}
+
+void solve(){
+    //適当に解を作る
+    //一部分を壊して作りなおす
+
+    input();
+
+    Distance=GridDistance<int>(Height,Width);
+    Distance.build();
+
+    make_initial_solution();
+/*
+{
+    vector<int> pre_solution;
+    cerr<<calc_score(pre_solution)<<endl;
+    ll change_sum=0;
+    auto add_day=vmake(Height,Width,vector<int>());
+    for(int i=0;i<soltuion.size();i++){
+        add_day[solution[i].h][solution[i].w].push_back(i);
+    }
+    for(int h=0;h<Height;h++) for(int w=0;w<Width;w++){
+        calc_different_add(DynamicArray<int,1000>(),add_day[h][w],0,)
+    }
+}
+*/
+    ll now_cost=calc_score(solution);
+
+    int T=10;
+    while(TIME.span()<1800){
+        neighbor(solution,now_cost);
+    }
+
+    output();
 #ifndef ONLINE_JUDGE
     testTimer.output();
     testCounter.output();
     cerr<<TIME.span()<<"ms"<<endl;
-    //cerr<<"score: "<<simulate(best_grid,true)<<endl;
+    cerr<<"score: "<<ll(calc_score(solution)/solution.size())<<endl;
 #endif
 }
  
