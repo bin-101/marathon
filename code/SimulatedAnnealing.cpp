@@ -165,20 +165,21 @@ struct SimulatedAnnealing{
     1:pow pow
     2:指数
     */
-    int type_temp=0;
+    int temp_type;
+    
 
     //SimulatedAnnealing(){}
-    SimulatedAnnealing(float temp_start,float temp_end,float time_start,float time_end,bool is_hill,bool minimum,int interval=1):
+    SimulatedAnnealing(float temp_start,float temp_end,float time_start,float time_end,bool is_hill,bool minimum,int temp_type=0,int interval=1):
         temp_start(temp_start),temp_end(temp_end),time_start(time_start),time_end(time_end),
-        is_hill(is_hill),minimum(minimum),interval(interval),temp_now(temp_start),cnt_calc_temp(0){
+        is_hill(is_hill),minimum(minimum),temp_type(temp_type),interval(interval),temp_now(temp_start),cnt_calc_temp(0){
     }
     float calc_temp(){
         if(cnt_calc_temp%interval==0){
             float progress=float(TIME.span()-time_start)/(time_end-time_start);
             if(progress>1.0) progress=1.0;
-            if(type_temp==0){//線形
+            if(temp_type==0){//線形
                 temp_now=temp_start*(1.0-progress)+temp_end*progress;
-            }else if(type_temp==1){ //https://atcoder.jp/contests/ahc014/submissions/35326979
+            }else if(temp_type==1){ //https://atcoder.jp/contests/ahc014/submissions/35326979
                 temp_now = pow(temp_start,1.0-progress)*pow(temp_end,progress);
             }else{ //https://ozy4dm.hateblo.jp/entry/2022/12/22/162046#68-%E3%83%97%E3%83%AB%E3%83%BC%E3%83%8B%E3%83%B3%E3%82%B0%E6%97%A9%E6%9C%9F%E7%B5%82%E4%BA%86%E5%8D%98%E7%B4%94%E5%8C%96%E3%81%95%E3%82%8C%E3%81%9F%E8%A8%88%E7%AE%97%E3%82%92%E4%BD%BF%E7%94%A8%E3%81%99%E3%82%8B
                 temp_now = temp_start*pow(temp_end/temp_start,progress);
